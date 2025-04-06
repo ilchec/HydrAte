@@ -157,6 +157,10 @@ function initTabs() {
 }
 
 function renderDiary(member) {
+  const settingsButton = document.querySelector('button[onclick="renderSettings()"]');
+  if (settingsButton) {
+    settingsButton.style.display = "block";
+  }
   const content = document.getElementById("content");
   const today = new Date().toISOString().split('T')[0];
   let html = "";
