@@ -1,42 +1,50 @@
   /* Header styles */
+  /* Header styles */
+#app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1em;
+  background-color: #007bff;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 100%; /* Ensure the header occupies full width */
+  box-sizing: border-box; /* Include padding and border in width calculation */
+}
+
+/* Accordion styles */
+.accordion {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+  width: 100%; /* Ensure accordion entries occupy full width */
+  box-sizing: border-box; /* Include padding and border in width calculation */
+}
+
+/* Responsive styles for mobile screens */
+@media (max-width: 600px) {
   #app-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.5rem 1rem;
-    margin-bottom: 1em;
-    background-color: #007bff;
-    color: white;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    flex-direction: column; /* Stack header elements vertically */
+    align-items: flex-start; /* Align items to the left */
   }
 
-  /* App logo */
-  #app-logo {
-    width: 40px;
-    height: 40px;
-    cursor: pointer;
-  }
-
-  /* User name in the center */
   #user-name {
-    font-size: 1.2rem;
-    font-weight: bold;
-    text-align: center;
-    flex: 1;
+    text-align: left; /* Align user name to the left */
+    margin-top: 0.5rem;
+    width: 100%; /* Ensure the user name spans full width */
   }
 
-  /* Hamburger menu */
-  #hamburger-menu {
-    background: none;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
+  .accordion {
+    width: 100%; /* Ensure accordion entries occupy full width */
   }
+}
 
   .hamburger-icon {
     width: 25px;
