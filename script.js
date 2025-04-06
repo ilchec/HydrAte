@@ -18,7 +18,7 @@ function loadConfig() {
   if (!config.members || config.members.length === 0) {
     renderSettings();
   } else {
-    initTabs();
+    initApp();
   }
 }
 
@@ -118,7 +118,7 @@ function saveSettings() {
 
   saveConfig();
   alert("Settings saved! Redirecting to the diary...");
-  initTabs();
+  initApp();
 }
 
 function saveConfig() {
@@ -129,10 +129,7 @@ function saveMeasures() {
   localStorage.setItem('measures', JSON.stringify(measures));
 }
 
-function initTabs() {
-  const tabsEl = document.getElementById("tabs");
-  tabsEl.innerHTML = "";
-
+function initApp() {
   if (config.members.length === 0) {
     currentMember = null;
     document.getElementById("content").innerHTML = "<p>No members available. Please configure the app in the settings.</p>";
@@ -143,19 +140,7 @@ function initTabs() {
   const userNameEl = document.getElementById("user-name");
   userNameEl.textContent = config.members[0].name;
 
-  config.members.forEach((member, index) => {
-    const tab = document.createElement("div");
-    tab.className = "tab" + (index === 0 ? " active" : "");
-    tab.textContent = member.name;
-    tab.onclick = () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      currentMember = member;
-      renderDiary(member);
-    };
-    tabsEl.appendChild(tab);
-  });
-
+  // Set the current member and render the diary
   currentMember = config.members[0];
   renderDiary(currentMember);
 }
