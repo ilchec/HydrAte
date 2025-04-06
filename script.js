@@ -193,28 +193,28 @@ function renderDiary(member) {
         </div>
         <div class="section">
           <strong>Sweets:</strong>
-          <div id="sweetsContainer">
+          <div id="sweetsContainer-${date}">
             ${(data.sweets || [{ name: "", amount: "" }]).map(entry => `
               <div class="input-group">
                 <input list="sweetsList" value="${entry.name || ''}" placeholder="Type sweets" onchange="addNewSweet(this.value)" /> 
                 <input type="number" value="${entry.amount || ''}" placeholder="Amount" />
               </div>`).join('')}
           </div>
-          <button onclick="addSweetsEntry()">Add More</button>
+          <button onclick="addSweetsEntry('${date}')">Add More</button>
           <datalist id="sweetsList">
             ${member.sweets.map(s => `<option value="${s}">`).join('')}
           </datalist>
         </div>
         <div class="section">
           <strong>Activity:</strong>
-          <div id="activityContainer">
+          <div id="activityContainer-${date}">
             ${(data.activity || [{ name: "", details: "" }]).map(entry => `
               <div class="input-group">
                 <input list="activityList" value="${entry.name || ''}" placeholder="Type activity" onchange="addNewActivity(this.value)" /> 
                 <input type="text" value="${entry.details || ''}" placeholder="Details" />
               </div>`).join('')}
           </div>
-          <button onclick="addActivityEntry()">Add More</button>
+          <button onclick="addActivityEntry('${date}')">Add More</button>
           <datalist id="activityList">
             ${member.activity.map(a => `<option value="${a}">`).join('')}
           </datalist>
@@ -267,8 +267,10 @@ function saveWeight(newWeight, date, memberName) {
   setTimeout(() => saveMessage.style.display = "none", 2000);
 }
 
-function addSweetsEntry() {
-  const container = document.getElementById("sweetsContainer");
+function addSweetsEntry(date) {
+  const container = document.querySelector(`#sweetsContainer-${date}`);
+  if (!container) return;
+
   const div = document.createElement("div");
   div.className = "input-group";
   div.innerHTML = `
@@ -278,8 +280,10 @@ function addSweetsEntry() {
   container.appendChild(div);
 }
 
-function addActivityEntry() {
-  const container = document.getElementById("activityContainer");
+function addActivityEntry(date) {
+  const container = document.querySelector(`#activityContainer-${date}`);
+  if (!container) return;
+
   const div = document.createElement("div");
   div.className = "input-group";
   div.innerHTML = `
