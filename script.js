@@ -193,7 +193,7 @@ function renderDiary(member) {
                 <input type="number" value="${entry.amount || ''}" placeholder="Amount" />
               </div>`).join('')}
           </div>
-          <button onclick="addSweetsEntry('${date}')">Add More</button>
+          <button onclick="addSweetsEntry('${date}')">+ Add More</button>
           <datalist id="sweetsList">
             ${member.sweets.map(s => `<option value="${s}">`).join('')}
           </datalist>
@@ -207,7 +207,7 @@ function renderDiary(member) {
                 <input type="text" value="${entry.details || ''}" placeholder="Details" />
               </div>`).join('')}
           </div>
-          <button onclick="addActivityEntry('${date}')">Add More</button>
+          <button onclick="addActivityEntry('${date}')">+ Add More</button>
           <datalist id="activityList">
             ${member.activity.map(a => `<option value="${a}">`).join('')}
           </datalist>
