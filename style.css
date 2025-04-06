@@ -99,7 +99,12 @@
       background-color: #0056b3;
     }
     .exercise-entry {
-      margin-bottom: 1rem;
+      margin-bottom: 1.5rem; /* Increase spacing between exercise entries */
+    }
+    
+    .exercise-entry label {
+      display: block; /* Ensure each set is on a new line */
+      margin-bottom: 0.5rem; /* Add spacing between sets */
     }
     .exercise-entry input {
       width: 60px;
@@ -113,3 +118,23 @@
       outline: none; /* Remove the blue outline */
       border: none; /* Remove any border */
     }
+
+    /* Responsive styles for phone screens */
+@media (max-width: 600px) {
+  input[type="text"],
+  input[type="number"],
+  textarea {
+    width: 100%; /* Make inputs take full width */
+    font-size: 1rem; /* Increase font size for better readability */
+  }
+
+  .input-group {
+    flex-direction: column; /* Stack inputs vertically */
+    gap: 0.8rem; /* Increase vertical spacing between inputs */
+  }
+
+  button {
+    width: 100%; /* Make buttons take full width */
+    font-size: 1rem; /* Increase font size for better usability */
+  }
+}

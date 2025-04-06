@@ -31,6 +31,10 @@ function saveMeasures() {
 }
 
 function renderSettings() {
+  const settingsButton = document.querySelector('button[onclick="renderSettings()"]');
+  if (settingsButton) {
+    settingsButton.style.display = "none";
+  }
   const content = document.getElementById("content");
 
   // Fetch the first member's data from config if available
