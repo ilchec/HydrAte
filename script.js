@@ -301,7 +301,8 @@ function collectDataForDate(date, memberName) {
   const data = {};
 
   // Collect water intake
-  const waterCount = document.querySelectorAll('.glass.filled').length;
+  const waterImages = document.querySelectorAll('.glass');
+  const waterCount = Array.from(waterImages).filter(img => img.src.includes('glass-of-water.png')).length;
   data.water = waterCount;
 
   // Collect sweets
@@ -320,7 +321,7 @@ function collectDataForDate(date, memberName) {
   const activityInputs = document.querySelectorAll('#activityContainer .input-group');
   data.activity = Array.from(activityInputs).map(group => {
     const nameInput = group.querySelector('input[type="text"]');
-    const detailsInput = group.querySelector('input[type="text"]:nth-child(2)');
+    const detailsInput = group.querySelector('input[type="text"]:nth-of-type(2)');
     if (!nameInput || !detailsInput) return null;
 
     const name = nameInput.value.trim();
