@@ -177,7 +177,7 @@ function renderDiary(member) {
     const saveButton = `<button onclick="saveMeasurements('${date}', '${member.name}')">Save</button>`;
 
     html += `
-    <div class="accordion ${open}">
+    <div class="accordion ${open}" data-date="${date}">
       <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">${date}</div>
       <div class="accordion-content">
         <div class="section">
@@ -220,19 +220,7 @@ function renderDiary(member) {
           </datalist>
         </div>
         <div class="section">
-          <strong>Exercises:</strong>
-          ${member.exercises.map(ex => {
-            const actual = (data.exercises || []).find(e => e.name === ex.name)?.actualReps || [];
-            return `
-              <div class="exercise-entry">
-                <div><strong>${ex.name}</strong></div>
-                ${ex.reps.map((r, i) => `<label>Set ${i + 1}: <input type="number" value="${actual[i] || ''}" placeholder="Actual" /> <span style="font-size: 0.9em; color: #888;">(Base: ${r})</span></label>`).join('<br>')}
-              </div>
-            `;
-          }).join('')}
-        </div>
-        <div class="section">
-          <strong>Weight:</strong> <input type="number" value="${data.weight || member.weight}" onchange="saveWeight(this.value, '${date}', '${member.name}')" /> kg
+          <strong>Weight:</strong> <input type="number" value="${data.weight || member.weight}" onchange="saveWeight(this.value, '${date}', '${member.name}')" data-date="${date}" /> kg
         </div>
         ${saveButton}
       </div>
@@ -308,14 +296,14 @@ function collectDataForDate(date, memberName) {
   const data = {};
 
   // Collect water intake
-  const waterImages = document.querySelectorAll('.glass');
+  const waterImages = document.querySelectorAll(`.accordion[data-date="${date}"] .glass`);
   const waterCount = Array.from(waterImages).filter(img => img.src.includes('glass-of-water.png')).length;
   data.water = waterCount;
 
   // Collect sweets
-  const sweetsInputs = document.querySelectorAll('#sweetsContainer .input-group');
+  const sweetsInputs = document.querySelectorAll(`#sweetsContainer-${date} .input-group`);
   data.sweets = Array.from(sweetsInputs).map(group => {
-    const nameInput = group.querySelector('input[type="text"]');
+    const nameInput = group.querySelector('input[list="sweetsList"]');
     const amountInput = group.querySelector('input[type="number"]');
     if (!nameInput || !amountInput) return null;
 
@@ -325,9 +313,9 @@ function collectDataForDate(date, memberName) {
   }).filter(entry => entry);
 
   // Collect activities
-  const activityInputs = document.querySelectorAll('#activityContainer .input-group');
+  const activityInputs = document.querySelectorAll(`#activityContainer-${date} .input-group`);
   data.activity = Array.from(activityInputs).map(group => {
-    const nameInput = group.querySelector('input[type="text"]');
+    const nameInput = group.querySelector('input[list="activityList"]');
     const detailsInput = group.querySelector('input[type="text"]:nth-of-type(2)');
     if (!nameInput || !detailsInput) return null;
 
@@ -347,7 +335,7 @@ function collectDataForDate(date, memberName) {
   });
 
   // Collect weight
-  const weightInput = document.querySelector('input[type="number"][onchange^="saveWeight"]');
+  const weightInput = document.querySelector(`input[type="number"][onchange^="saveWeight"][data-date="${date}"]`);
   data.weight = weightInput ? parseFloat(weightInput.value) : null;
 
   return data;
