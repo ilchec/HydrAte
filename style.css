@@ -36,7 +36,7 @@ button[onclick^="save"] {
   background-color: transparent; /* Transparent background */
   border: 2px solid #218838; /* Dashed border */
   border-radius: 8px; /* Rounded corners */
-  color: #333; /* Text color */
+  color: #218838; /* Text color */
   font-size: 1rem; /* Adjust font size */
   padding: 0.5rem; /* Adjust padding */
   text-align: center; /* Center-align text */
