@@ -220,6 +220,23 @@ function renderDiary(member) {
           </datalist>
         </div>
         <div class="section">
+          <strong>Exercises:</strong>
+          ${member.exercises.map(ex => {
+            const actual = (data.exercises || []).find(e => e.name === ex.name)?.actualReps || [];
+            return `
+              <div class="exercise-entry">
+                <div><strong>${ex.name}</strong></div>
+                ${ex.reps.map((r, i) => `
+                  <label>Set ${i + 1}: 
+                    <input type="number" value="${actual[i] || ''}" placeholder="Actual" /> 
+                    <span style="font-size: 0.9em; color: #888;">(Base: ${r})</span>
+                  </label>
+                `).join('<br>')}
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <div class="section">
           <strong>Weight:</strong> <input type="number" value="${data.weight || member.weight}" onchange="saveWeight(this.value, '${date}', '${member.name}')" data-date="${date}" /> kg
         </div>
         ${saveButton}
