@@ -194,7 +194,7 @@ textarea {
 /* Responsive Styles for Mobile Screens */
 @media (max-width: 600px) {
   #app-header {
-    flex-direction: column;
+    flex-direction: row;
     align-items: flex-start;
   }
 
