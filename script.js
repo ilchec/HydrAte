@@ -393,8 +393,8 @@ function updateActivityDatalist() {
 }
 
 function toggleMenu() {
-  const tabsEl = document.getElementById("tabs");
-  tabsEl.style.display = tabsEl.style.display === "none" ? "flex" : "none";
+  const menuDropdown = document.getElementById("menu-dropdown");
+  menuDropdown.classList.toggle("visible");
 }
 
 loadConfig();
