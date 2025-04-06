@@ -140,8 +140,13 @@ function renderDiary(member) {
   const today = new Date().toISOString().split('T')[0];
   let html = "";
 
-  // Get all dates for the member
-  const allDates = [today, ...Object.keys(measures).reverse().filter(date => measures[date][member.name])];
+  // Get all dates for the member, ensuring today's date is only included once
+  const allDates = Object.keys(measures)
+    .filter(date => measures[date][member.name])
+    .reverse();
+  if (!allDates.includes(today)) {
+    allDates.unshift(today);
+  }
 
   allDates.forEach((date, idx) => {
     const open = idx === 0 ? 'open' : '';
@@ -252,7 +257,7 @@ function saveMeasurements(date, memberName) {
 }
 
 function collectDataForDate(date, memberName) {
-  const data = measures[date]?.[memberName] || {};
+  const data = {};
 
   // Collect water intake
   const waterCount = document.querySelectorAll('.glass.filled').length;
