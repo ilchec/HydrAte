@@ -32,32 +32,49 @@ function saveMeasures() {
 
 function renderSettings() {
   const content = document.getElementById("content");
+
+  // Fetch the first member's data from config if available
+  const member = config.members[0] || {
+    name: "",
+    weight: "",
+    waterNorm: "",
+    sweets: [],
+    activity: [],
+    exercises: []
+  };
+
+  const sweets = member.sweets.join(", ");
+  const activities = member.activity.join(", ");
+  const exercises = member.exercises
+    .map(ex => `${ex.name}|${ex.sets}|${ex.reps.join(",")}`)
+    .join("\n");
+
   content.innerHTML = `
     <h2>Settings</h2>
-    <p>Please enter the required data to get started:</p>
+    <p>Please update the required data:</p>
     <div class="section">
       <label for="memberName"><strong>Member Name:</strong></label>
-      <input type="text" id="memberName" placeholder="Enter name" />
+      <input type="text" id="memberName" value="${member.name}" placeholder="Enter name" />
     </div>
     <div class="section">
       <label for="memberWeight"><strong>Weight (kg):</strong></label>
-      <input type="number" id="memberWeight" placeholder="Enter weight" />
+      <input type="number" id="memberWeight" value="${member.weight}" placeholder="Enter weight" />
     </div>
     <div class="section">
       <label for="waterNorm"><strong>Daily Water Norm (glasses):</strong></label>
-      <input type="number" id="waterNorm" placeholder="Enter water norm" />
+      <input type="number" id="waterNorm" value="${member.waterNorm}" placeholder="Enter water norm" />
     </div>
     <div class="section">
       <label for="sweets"><strong>Favorite Sweets (comma-separated):</strong></label>
-      <input type="text" id="sweets" placeholder="e.g., Chocolate, Candy" />
+      <input type="text" id="sweets" value="${sweets}" placeholder="e.g., Chocolate, Candy" />
     </div>
     <div class="section">
       <label for="activities"><strong>Favorite Activities (comma-separated):</strong></label>
-      <input type="text" id="activities" placeholder="e.g., Walking, Yoga" />
+      <input type="text" id="activities" value="${activities}" placeholder="e.g., Walking, Yoga" />
     </div>
     <div class="section">
       <label for="exercises"><strong>Exercises (one per line, format: Name|Sets|Reps):</strong></label>
-      <textarea id="exercises" placeholder="e.g., Push-ups|3|10,10,10"></textarea>
+      <textarea id="exercises" placeholder="e.g., Push-ups|3|10,10,10">${exercises}</textarea>
     </div>
     <button onclick="saveSettings()">Save</button>
   `;
