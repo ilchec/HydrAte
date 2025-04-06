@@ -179,7 +179,14 @@ function renderDiary(member) {
       <div class="accordion-content">
         <div class="section">
           <strong>Water:</strong>
-          ${Array.from({ length: member.waterNorm }, (_, i) => `<div class="glass ${i < (data.water || 0) ? 'filled' : ''}" onclick="fillGlass(this, ${i + 1}, '${date}', '${member.name}')"></div>`).join('')}
+          ${Array.from({ length: member.waterNorm }, (_, i) => `
+            <img 
+              src="${i < (data.water || 0) ? 'glass-of-water.png' : 'glass-of-water-empty.png'}" 
+              class="glass" 
+              onclick="fillGlass(this, ${i + 1}, '${date}', '${member.name}')"
+              alt="Glass of Water"
+            />
+          `).join('')}
         </div>
         <div class="section">
           <strong>Sweets:</strong>
@@ -235,10 +242,15 @@ function renderDiary(member) {
 
 function fillGlass(el, count, date, memberName) {
   const glasses = el.parentNode.querySelectorAll('.glass');
-  glasses.forEach((g, i) => g.classList.toggle('filled', i < count));
+  glasses.forEach((glass, i) => {
+    glass.src = i < count ? 'glass-of-water.png' : 'glass-of-water-empty.png';
+  });
+
+  // Update the water count in the measures object
   measures[date] = measures[date] || {};
   measures[date][memberName] = measures[date][memberName] || {};
   measures[date][memberName].water = count;
+
   saveMeasures();
 }
 
