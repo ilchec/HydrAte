@@ -146,10 +146,6 @@ function initApp() {
 }
 
 function renderDiary(member) {
-  const settingsButton = document.querySelector('button[onclick="renderSettings()"]');
-  if (settingsButton) {
-    settingsButton.style.display = "block";
-  }
   const content = document.getElementById("content");
   const today = new Date().toISOString().split('T')[0];
   let html = "";
@@ -201,7 +197,58 @@ function renderDiary(member) {
         <div class="section">
           <strong>Activity:</strong>
           <div id="activityContainer-${date}">
-            ${(data.activity || [{ name: "", details: "" }]).map(entry => `
+            ${(data.activity |            function collectDataForDate(date, memberName) {
+              const data = {};
+            
+              // Collect water intake
+              const waterImages = document.querySelectorAll(`.accordion[data-date="${date}"] .glass`);
+              const waterCount = Array.from(waterImages).filter(img => img.src.includes('glass-of-water.png')).length;
+              data.water = waterCount;
+            
+              // Collect sweets
+              const sweetsInputs = document.querySelectorAll(`#sweetsContainer-${date} .input-group`);
+              data.sweets = Array.from(sweetsInputs).map(group => {
+                const nameInput = group.querySelector('input[list="sweetsList"]');
+                const amountInput = group.querySelector('input[type="number"]');
+                if (!nameInput || !amountInput) return null;
+            
+                const name = nameInput.value.trim();
+                const amount = parseInt(amountInput.value);
+                return name && !isNaN(amount) ? { name, amount } : null;
+              }).filter(entry => entry);
+            
+              // Collect activities
+              const activityInputs = document.querySelectorAll(`#activityContainer-${date} .input-group`);
+              data.activity = Array.from(activityInputs).map(group => {
+                const nameInput = group.querySelector('input[list="activityList"]');
+                const detailsInput = group.querySelector('input[type="text"]:nth-of-type(2)');
+                if (!nameInput || !detailsInput) return null;
+            
+                const name = nameInput.value.trim();
+                const details = detailsInput.value.trim();
+                return name ? { name, details } : null;
+              }).filter(entry => entry);
+            
+              // Collect exercises
+              data.exercises = currentMember.exercises.map((exercise, exerciseIndex) => {
+                const exerciseInputs = document.querySelectorAll(`.exercise-entry:nth-of-type(${exerciseIndex + 1}) input`);
+                const actualReps = Array.from(exerciseInputs)
+                  .slice(0, exercise.reps.length) // Limit to the number of sets defined in the settings
+                  .map(input => parseInt(input.value))
+                  .filter(value => !isNaN(value));
+                return { name: exercise.name, actualReps };
+              });
+            
+              // Collect weight
+              const weightInput = document.querySelector(`input[type="number"][onchange^="saveWeight"][data-date="${date}"]`);
+              data.weight = weightInput ? parseFloat(weightInput.value) : null;
+            
+              // Collect note
+              const noteInput = document.getElementById(`note-${date}`);
+              data.note = noteInput ? noteInput.value.trim() : '';
+            
+              return data;
+            }| [{ name: "", details: "" }]).map(entry => `
               <div class="input-group">
                 <input list="activityList" value="${entry.name || ''}" placeholder="Type activity" onchange="addNewActivity(this.value)" /> 
                 <input type="text" value="${entry.details || ''}" placeholder="Details" />
@@ -231,6 +278,10 @@ function renderDiary(member) {
         </div>
         <div class="section">
           <strong>Weight:</strong> <input type="number" value="${data.weight || member.weight}" onchange="saveWeight(this.value, '${date}', '${member.name}')" data-date="${date}" /> kg
+        </div>
+        <div class="section">
+          <strong>Note:</strong>
+          <textarea id="note-${date}" placeholder="Add a note for this day...">${data.note || ''}</textarea>
         </div>
         ${saveButton}
       </div>
