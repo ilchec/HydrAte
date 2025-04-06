@@ -1,159 +1,292 @@
-    let currentMember = null;
+let currentMember = null;
+let config = { members: [] };
+let measures = {};
 
-    function loadConfig() {
-      //config = JSON.parse(config);
-      //config = JSON.parse(measures);
-      initTabs();
+function loadConfig() {
+  const savedConfig = localStorage.getItem('config');
+  const savedMeasures = localStorage.getItem('measures');
+
+  if (savedConfig) {
+    config = JSON.parse(savedConfig);
+  }
+
+  if (savedMeasures) {
+    measures = JSON.parse(savedMeasures);
+  }
+
+  // If no members are found, show the settings page
+  if (!config.members || config.members.length === 0) {
+    renderSettings();
+  } else {
+    initTabs();
+  }
+}
+
+function saveConfig() {
+  localStorage.setItem('config', JSON.stringify(config));
+}
+
+function saveMeasures() {
+  localStorage.setItem('measures', JSON.stringify(measures));
+}
+
+function renderSettings() {
+  const content = document.getElementById("content");
+  content.innerHTML = `
+    <h2>Settings</h2>
+    <p>Please enter the required data to get started:</p>
+    <div class="section">
+      <label for="memberName"><strong>Member Name:</strong></label>
+      <input type="text" id="memberName" placeholder="Enter name" />
+    </div>
+    <div class="section">
+      <label for="memberWeight"><strong>Weight (kg):</strong></label>
+      <input type="number" id="memberWeight" placeholder="Enter weight" />
+    </div>
+    <div class="section">
+      <label for="waterNorm"><strong>Daily Water Norm (glasses):</strong></label>
+      <input type="number" id="waterNorm" placeholder="Enter water norm" />
+    </div>
+    <div class="section">
+      <label for="sweets"><strong>Favorite Sweets (comma-separated):</strong></label>
+      <input type="text" id="sweets" placeholder="e.g., Chocolate, Candy" />
+    </div>
+    <div class="section">
+      <label for="activities"><strong>Favorite Activities (comma-separated):</strong></label>
+      <input type="text" id="activities" placeholder="e.g., Walking, Yoga" />
+    </div>
+    <div class="section">
+      <label for="exercises"><strong>Exercises (one per line, format: Name|Sets|Reps):</strong></label>
+      <textarea id="exercises" placeholder="e.g., Push-ups|3|10,10,10"></textarea>
+    </div>
+    <button onclick="saveSettings()">Save</button>
+  `;
+}
+
+function saveSettings() {
+  const name = document.getElementById("memberName").value.trim();
+  const weight = parseFloat(document.getElementById("memberWeight").value);
+  const waterNorm = parseInt(document.getElementById("waterNorm").value);
+  const sweets = document.getElementById("sweets").value.split(',').map(s => s.trim());
+  const activities = document.getElementById("activities").value.split(',').map(a => a.trim());
+  const exerciseLines = document.getElementById("exercises").value.split('\n');
+  const exercises = exerciseLines.map(line => {
+    const [name, setsStr, repsStr] = line.split('|');
+    return {
+      name: name.trim(),
+      sets: parseInt(setsStr),
+      reps: repsStr.split(',').map(r => parseInt(r))
+    };
+  });
+
+  if (!name || isNaN(weight) || isNaN(waterNorm)) {
+    alert("Please fill out all required fields.");
+    return;
+  }
+
+  config.members = [
+    {
+      name,
+      weight,
+      waterNorm,
+      sweets,
+      activity: activities,
+      exercises
     }
+  ];
 
-    function initTabs() {
-      const tabsEl = document.getElementById("tabs");
-      tabsEl.innerHTML = "";
-      config.members.forEach((member, index) => {
-        const tab = document.createElement("div");
-        tab.className = "tab" + (index === 0 ? " active" : "");
-        tab.textContent = member.name;
-        tab.onclick = () => {
-          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-          tab.classList.add('active');
-          currentMember = member;
-          renderDiary(member);
-        };
-        tabsEl.appendChild(tab);
-      });
-      currentMember = config.members[0];
-      renderDiary(currentMember);
-    }
+  saveConfig();
+  alert("Settings saved! Redirecting to the diary...");
+  initTabs();
+}
 
-    function renderDiary(member) {
-      const content = document.getElementById("content");
-      const today = new Date().toISOString().split('T')[0];
-      let html = "";
-      const allDates = [today, ...Object.keys(measures).reverse().filter(date => measures[date][member.name])];
+function saveConfig() {
+  localStorage.setItem('config', JSON.stringify(config));
+}
 
-      allDates.forEach((date, idx) => {
-        const open = idx === 0 ? 'open' : '';
-        const data = measures[date]?.[member.name] || {};
-        html += `
-        <div class="accordion ${open}">
-          <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">${date}</div>
-          <div class="accordion-content">
-            <div class="section">
-              <strong>Water:</strong>
-              ${Array.from({ length: member.waterNorm }, (_, i) => `<div class="glass ${i < (data.water || 0) ? 'filled' : ''}" onclick="fillGlass(this, ${i + 1})"></div>`).join('')}
-            </div>
-            <div class="section">
-              <strong>Sweets:</strong>
-              <div id="sweetsContainer">
-                ${(data.sweets || [{ name: "", amount: "" }]).map(entry => `
-                  <div class="input-group">
-                    <input list="sweetsList" value="${entry.name || ''}" placeholder="Type sweets" /> <input type="number" value="${entry.amount || ''}" placeholder="Amount" />
-                  </div>`).join('')}
-              </div>
-              <button onclick="addSweetsEntry()">Add More</button>
-              <datalist id="sweetsList">
-                ${member.sweets.map(s => `<option value="${s}">`).join('')}
-              </datalist>
-            </div>
-            <div class="section">
-              <strong>Activity:</strong>
-              <div id="activityContainer">
-                ${(data.activity || [{ name: "", details: "" }]).map(entry => `
-                  <div class="input-group">
-                    <input list="activityList" value="${entry.name || ''}" placeholder="Type activity" /> <input type="text" value="${entry.details || ''}" placeholder="Details" />
-                  </div>`).join('')}
-              </div>
-              <button onclick="addActivityEntry()">Add More</button>
-              <datalist id="activityList">
-                ${member.activity.map(a => `<option value="${a}">`).join('')}
-              </datalist>
-            </div>
-            <div class="section">
-              <strong>Exercises:</strong>
-              ${member.exercises.map(ex => {
-                const actual = (data.exercises || []).find(e => e.name === ex.name)?.actualReps || [];
-                return `
-                  <div class="exercise-entry">
-                    <div><strong>${ex.name}</strong></div>
-                    ${ex.reps.map((r, i) => `<label>Set ${i + 1}: <input type="number" value="${actual[i] || ''}" placeholder="Actual" /> <span style="font-size: 0.9em; color: #888;">(Base: ${r})</span></label>`).join('<br>')}
-                  </div>
-                `;
-              }).join('')}
-            </div>
-            <div class="section">
-              <strong>Weight:</strong> <input type="number" value="${data.weight || member.weight}" onchange="saveWeight(this.value)" /> kg
-            </div>
-          </div>
-        </div>
-        `;
-      });
-      content.innerHTML = html;
-    }
+function saveMeasures() {
+  localStorage.setItem('measures', JSON.stringify(measures));
+}
 
-    function renderSettings() {
-      const content = document.getElementById("content");
-      content.innerHTML = `
+function initTabs() {
+  const tabsEl = document.getElementById("tabs");
+  tabsEl.innerHTML = "";
+
+  if (config.members.length === 0) {
+    currentMember = null;
+    document.getElementById("content").innerHTML = "<p>No members available. Please configure the app in the settings.</p>";
+    return;
+  }
+
+  config.members.forEach((member, index) => {
+    const tab = document.createElement("div");
+    tab.className = "tab" + (index === 0 ? " active" : "");
+    tab.textContent = member.name;
+    tab.onclick = () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentMember = member;
+      renderDiary(member);
+    };
+    tabsEl.appendChild(tab);
+  });
+
+  currentMember = config.members[0];
+  renderDiary(currentMember);
+}
+
+function renderDiary(member) {
+  const content = document.getElementById("content");
+  const today = new Date().toISOString().split('T')[0];
+  let html = "";
+
+  // Get all dates for the member
+  const allDates = [today, ...Object.keys(measures).reverse().filter(date => measures[date][member.name])];
+
+  allDates.forEach((date, idx) => {
+    const open = idx === 0 ? 'open' : '';
+    const data = measures[date]?.[member.name] || {};
+
+    // If today already exists, allow editing only
+    const isToday = date === today;
+    const saveButton = isToday ? `<button onclick="saveMeasurements('${date}', '${member.name}')">Save</button>` : '';
+
+    html += `
+    <div class="accordion ${open}">
+      <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">${date}</div>
+      <div class="accordion-content">
         <div class="section">
-          <h2>Add New Family Member</h2>
-          <div class="input-group"><input type="text" id="newName" placeholder="Name" /></div>
-          <div class="input-group"><input type="number" id="newWeight" placeholder="Weight (kg)" /></div>
-          <div class="input-group"><input type="number" id="newWaterNorm" placeholder="Water Norm (glasses)" /></div>
-          <div class="input-group"><input type="text" id="newSweets" placeholder="Comma-separated sweets" /></div>
-          <div class="input-group"><input type="text" id="newActivity" placeholder="Comma-separated activities" /></div>
-          <div class="input-group"><textarea id="newExercises" placeholder="Exercises (format: name|sets|reps1,reps2,... per line)"></textarea></div>
-          <button onclick="addNewMember()">Save Member</button>
+          <strong>Water:</strong>
+          ${Array.from({ length: member.waterNorm }, (_, i) => `<div class="glass ${i < (data.water || 0) ? 'filled' : ''}" onclick="fillGlass(this, ${i + 1}, '${date}', '${member.name}')"></div>`).join('')}
         </div>
-      `;
-    }
+        <div class="section">
+          <strong>Sweets:</strong>
+          <div id="sweetsContainer">
+            ${(data.sweets || [{ name: "", amount: "" }]).map(entry => `
+              <div class="input-group">
+                <input type="text" value="${entry.name || ''}" placeholder="Type sweets" /> 
+                <input type="number" value="${entry.amount || ''}" placeholder="Amount" />
+              </div>`).join('')}
+          </div>
+          <button onclick="addSweetsEntry()">Add More</button>
+        </div>
+        <div class="section">
+          <strong>Activity:</strong>
+          <div id="activityContainer">
+            ${(data.activity || [{ name: "", details: "" }]).map(entry => `
+              <div class="input-group">
+                <input type="text" value="${entry.name || ''}" placeholder="Type activity" /> 
+                <input type="text" value="${entry.details || ''}" placeholder="Details" />
+              </div>`).join('')}
+          </div>
+          <button onclick="addActivityEntry()">Add More</button>
+        </div>
+        <div class="section">
+          <strong>Exercises:</strong>
+          ${member.exercises.map(ex => {
+            const actual = (data.exercises || []).find(e => e.name === ex.name)?.actualReps || [];
+            return `
+              <div class="exercise-entry">
+                <div><strong>${ex.name}</strong></div>
+                ${ex.reps.map((r, i) => `<label>Set ${i + 1}: <input type="number" value="${actual[i] || ''}" placeholder="Actual" /> <span style="font-size: 0.9em; color: #888;">(Base: ${r})</span></label>`).join('<br>')}
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <div class="section">
+          <strong>Weight:</strong> <input type="number" value="${data.weight || member.weight}" onchange="saveWeight(this.value, '${date}', '${member.name}')" /> kg
+        </div>
+        ${saveButton}
+      </div>
+    </div>
+    `;
+  });
 
-    function addNewMember() {
-      const name = document.getElementById("newName").value;
-      const weight = parseFloat(document.getElementById("newWeight").value);
-      const waterNorm = parseInt(document.getElementById("newWaterNorm").value);
-      const sweets = document.getElementById("newSweets").value.split(',').map(s => s.trim());
-      const activity = document.getElementById("newActivity").value.split(',').map(a => a.trim());
-      const exerciseLines = document.getElementById("newExercises").value.split('\n');
-      const exercises = exerciseLines.map(line => {
-        const [name, setsStr, repsStr] = line.split('|');
-        return {
-          name: name.trim(),
-          sets: parseInt(setsStr),
-          reps: repsStr.split(',').map(r => parseInt(r))
-        };
-      });
+  content.innerHTML = html;
+}
 
-      config.members.push({ name, weight, waterNorm, sweets, activity, exercises });
-      localStorage.setItem('config', JSON.stringify(config));
-      initTabs();
-    }
+function fillGlass(el, count, date, memberName) {
+  const glasses = el.parentNode.querySelectorAll('.glass');
+  glasses.forEach((g, i) => g.classList.toggle('filled', i < count));
+  measures[date] = measures[date] || {};
+  measures[date][memberName] = measures[date][memberName] || {};
+  measures[date][memberName].water = count;
+  saveMeasures();
+}
 
-    function fillGlass(el, count) {
-      const glasses = el.parentNode.querySelectorAll('.glass');
-      glasses.forEach((g, i) => g.classList.toggle('filled', i < count));
-    }
+function saveWeight(newWeight, date, memberName) {
+  measures[date] = measures[date] || {};
+  measures[date][memberName] = measures[date][memberName] || {};
+  measures[date][memberName].weight = parseFloat(newWeight);
+  saveMeasures();
+  const saveMessage = document.getElementById("saveMessage");
+  saveMessage.style.display = "block";
+  setTimeout(() => saveMessage.style.display = "none", 2000);
+}
 
-    function addSweetsEntry() {
-      const container = document.getElementById("sweetsContainer");
-      const div = document.createElement("div");
-      div.className = "input-group";
-      div.innerHTML = `<input list="sweetsList" placeholder="Type sweets" /> <input type="number" placeholder="Amount" />`;
-      container.appendChild(div);
-    }
+function addSweetsEntry() {
+  const container = document.getElementById("sweetsContainer");
+  const div = document.createElement("div");
+  div.className = "input-group";
+  div.innerHTML = `<input list="sweetsList" placeholder="Type sweets" /> <input type="number" placeholder="Amount" />`;
+  container.appendChild(div);
+}
 
-    function addActivityEntry() {
-      const container = document.getElementById("activityContainer");
-      const div = document.createElement("div");
-      div.className = "input-group";
-      div.innerHTML = `<input list="activityList" placeholder="Type activity" /> <input type="text" placeholder="Details" />`;
-      container.appendChild(div);
-    }
+function addActivityEntry() {
+  const container = document.getElementById("activityContainer");
+  const div = document.createElement("div");
+  div.className = "input-group";
+  div.innerHTML = `<input list="activityList" placeholder="Type activity" /> <input type="text" placeholder="Details" />`;
+  container.appendChild(div);
+}
 
-    function saveWeight(newWeight) {
-      currentMember.weight = parseFloat(newWeight);
-      localStorage.setItem('config', JSON.stringify(config));
-      const saveMessage = document.getElementById("saveMessage");
-      saveMessage.style.display = "block";
-      setTimeout(() => saveMessage.style.display = "none", 2000);
-    }
+function saveMeasurements(date, memberName) {
+  const data = collectDataForDate(date, memberName);
 
-    loadConfig();
+  // Ensure measures for the date and member exist
+  measures[date] = measures[date] || {};
+  measures[date][memberName] = data;
+
+  saveMeasures();
+  alert('All measurements saved!');
+}
+
+function collectDataForDate(date, memberName) {
+  const data = measures[date]?.[memberName] || {};
+
+  // Collect water intake
+  const waterCount = document.querySelectorAll('.glass.filled').length;
+  data.water = waterCount;
+
+  // Collect sweets
+  const sweetsInputs = document.querySelectorAll('#sweetsContainer .input-group');
+  data.sweets = Array.from(sweetsInputs).map(group => {
+    const name = group.querySelector('input[type="text"]').value.trim();
+    const amount = parseInt(group.querySelector('input[type="number"]').value);
+    return name && !isNaN(amount) ? { name, amount } : null;
+  }).filter(entry => entry);
+
+  // Collect activities
+  const activityInputs = document.querySelectorAll('#activityContainer .input-group');
+  data.activity = Array.from(activityInputs).map(group => {
+    const name = group.querySelector('input[type="text"]').value.trim();
+    const details = group.querySelector('input[type="text"]:nth-child(2)').value.trim();
+    return name ? { name, details } : null;
+  }).filter(entry => entry);
+
+  // Collect exercises
+  data.exercises = currentMember.exercises.map(exercise => {
+    const actualReps = Array.from(document.querySelectorAll(`.exercise-entry input`))
+      .map(input => parseInt(input.value))
+      .filter(value => !isNaN(value));
+    return { name: exercise.name, actualReps };
+  });
+
+  // Collect weight
+  const weightInput = document.querySelector('input[type="number"][onchange^="saveWeight"]');
+  data.weight = parseFloat(weightInput.value);
+
+  return data;
+}
+
+loadConfig();
