@@ -224,7 +224,7 @@ textarea:focus {
 }
 
 .exercise-entry input {
-  width: 60px;
+  width: 80px;
   text-align: center;
 }
 
@@ -242,6 +242,7 @@ textarea:focus {
   input,
   textarea {
     width: 100%;
+    margin: 0 .5rem 0.5rem 0; /* Adjust padding for mobile */
     font-size: 1rem;
   }
 
@@ -253,6 +254,11 @@ textarea:focus {
   button[onclick^="add"],
   button[onclick^="save"] {
     width: 100%; /* Full width */
+    margin: 0 .5rem 0.5rem 0; /* Adjust padding for mobile */
+  }
+
+  #content {
+    padding: .5rem; /* Add padding to the content */
   }
 
 }

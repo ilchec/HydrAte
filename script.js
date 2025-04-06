@@ -70,11 +70,11 @@ function renderSettings() {
     </div>
     <div class="section">
       <label for="sweets"><strong>Favorite Sweets (comma-separated):</strong></label>
-      <input type="text" id="sweets" value="${sweets}" placeholder="e.g., Chocolate, Candy" />
+      <textarea id="sweets" placeholder="e.g., Chocolate, Candy" >${sweets}</textarea>
     </div>
     <div class="section">
       <label for="activities"><strong>Favorite Activities (comma-separated):</strong></label>
-      <input type="text" id="activities" value="${activities}" placeholder="e.g., Walking, Yoga" />
+      <textarea id="activities" value="" placeholder="e.g., Walking, Yoga" >${activities}</textarea>
     </div>
     <div class="section">
       <label for="exercises"><strong>Exercises (one per line, format: Name|Sets|Reps):</strong></label>
