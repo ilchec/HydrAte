@@ -265,7 +265,7 @@ function addActivityEntry() {
 function saveMeasurements(date, memberName) {
   const data = collectDataForDate(date, memberName);
 
-  // Ensure measures for the date and member exist
+  // Replace the data for the specified date and member
   measures[date] = measures[date] || {};
   measures[date][memberName] = data;
 
@@ -298,7 +298,8 @@ function collectDataForDate(date, memberName) {
 
   // Collect exercises
   data.exercises = currentMember.exercises.map(exercise => {
-    const actualReps = Array.from(document.querySelectorAll(`.exercise-entry input`))
+    const exerciseInputs = document.querySelectorAll(`.exercise-entry input`);
+    const actualReps = Array.from(exerciseInputs)
       .map(input => parseInt(input.value))
       .filter(value => !isNaN(value));
     return { name: exercise.name, actualReps };
