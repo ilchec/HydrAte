@@ -186,22 +186,28 @@ function renderDiary(member) {
           <div id="sweetsContainer">
             ${(data.sweets || [{ name: "", amount: "" }]).map(entry => `
               <div class="input-group">
-                <input type="text" value="${entry.name || ''}" placeholder="Type sweets" /> 
+                <input list="sweetsList" value="${entry.name || ''}" placeholder="Type sweets" onchange="addNewSweet(this.value)" /> 
                 <input type="number" value="${entry.amount || ''}" placeholder="Amount" />
               </div>`).join('')}
           </div>
           <button onclick="addSweetsEntry()">Add More</button>
+          <datalist id="sweetsList">
+            ${member.sweets.map(s => `<option value="${s}">`).join('')}
+          </datalist>
         </div>
         <div class="section">
           <strong>Activity:</strong>
           <div id="activityContainer">
             ${(data.activity || [{ name: "", details: "" }]).map(entry => `
               <div class="input-group">
-                <input type="text" value="${entry.name || ''}" placeholder="Type activity" /> 
+                <input list="activityList" value="${entry.name || ''}" placeholder="Type activity" onchange="addNewActivity(this.value)" /> 
                 <input type="text" value="${entry.details || ''}" placeholder="Details" />
               </div>`).join('')}
           </div>
           <button onclick="addActivityEntry()">Add More</button>
+          <datalist id="activityList">
+            ${member.activity.map(a => `<option value="${a}">`).join('')}
+          </datalist>
         </div>
         <div class="section">
           <strong>Exercises:</strong>
@@ -250,7 +256,10 @@ function addSweetsEntry() {
   const container = document.getElementById("sweetsContainer");
   const div = document.createElement("div");
   div.className = "input-group";
-  div.innerHTML = `<input list="sweetsList" placeholder="Type sweets" /> <input type="number" placeholder="Amount" />`;
+  div.innerHTML = `
+    <input list="sweetsList" placeholder="Type sweets" onchange="addNewSweet(this.value)" /> 
+    <input type="number" placeholder="Amount" />
+  `;
   container.appendChild(div);
 }
 
@@ -258,7 +267,10 @@ function addActivityEntry() {
   const container = document.getElementById("activityContainer");
   const div = document.createElement("div");
   div.className = "input-group";
-  div.innerHTML = `<input list="activityList" placeholder="Type activity" /> <input type="text" placeholder="Details" />`;
+  div.innerHTML = `
+    <input list="activityList" placeholder="Type activity" onchange="addNewActivity(this.value)" /> 
+    <input type="text" placeholder="Details" />
+  `;
   container.appendChild(div);
 }
 
@@ -311,6 +323,32 @@ function collectDataForDate(date, memberName) {
   data.weight = parseFloat(weightInput.value);
 
   return data;
+}
+
+function addNewSweet(sweet) {
+  if (sweet && !config.members[0].sweets.includes(sweet)) {
+    config.members[0].sweets.push(sweet);
+    saveConfig();
+    updateSweetsDatalist();
+  }
+}
+
+function addNewActivity(activity) {
+  if (activity && !config.members[0].activity.includes(activity)) {
+    config.members[0].activity.push(activity);
+    saveConfig();
+    updateActivityDatalist();
+  }
+}
+
+function updateSweetsDatalist() {
+  const sweetsList = document.getElementById("sweetsList");
+  sweetsList.innerHTML = config.members[0].sweets.map(s => `<option value="${s}">`).join('');
+}
+
+function updateActivityDatalist() {
+  const activityList = document.getElementById("activityList");
+  activityList.innerHTML = config.members[0].activity.map(a => `<option value="${a}">`).join('');
 }
 
 loadConfig();
