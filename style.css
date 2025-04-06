@@ -239,7 +239,8 @@ textarea:focus {
     gap: 0.8rem;
   }
 
-  button[onclick^="add"] {
+  button[onclick^="add"],
+  button[onclick^="save"] {
     width: 100%; /* Full width */
   }
 
