@@ -169,9 +169,8 @@ function renderDiary(member) {
     const open = idx === 0 ? 'open' : '';
     const data = measures[date]?.[member.name] || {};
 
-    // If today already exists, allow editing only
-    const isToday = date === today;
-    const saveButton = isToday ? `<button onclick="saveMeasurements('${date}', '${member.name}')">Save</button>` : '';
+    // Add the "Save" button for all dates
+    const saveButton = `<button onclick="saveMeasurements('${date}', '${member.name}')">Save</button>`;
 
     html += `
     <div class="accordion ${open}">
