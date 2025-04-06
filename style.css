@@ -1,12 +1,4 @@
 /* General Styles */
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #f8f9fa;
-  padding: 0;
-  margin: 0;
-  color: #333;
-}
-
 button {
   padding: 0.4rem 1rem;
   background-color: #28a745;
@@ -19,6 +11,26 @@ button {
 
 button:hover {
   background-color: #218838;
+}
+
+button:hover {
+  background-color: #218838;
+}
+
+button[onclick^="add"] {
+  background-color: transparent; /* Transparent background */
+  border: 2px dashed #333; /* Dashed border */
+  border-radius: 8px; /* Rounded corners */
+  color: #333; /* Text color */
+  font-size: 1rem; /* Adjust font size */
+  padding: 0.5rem; /* Adjust padding */
+  text-align: center; /* Center-align text */
+}
+
+button[onclick^="add"]:hover {
+  background-color: #f8f9fa; /* Light background on hover */
+  border-color: #007bff; /* Change border color on hover */
+  color: #007bff; /* Change text color on hover */
 }
 
 input[type="text"],
@@ -212,6 +224,10 @@ textarea {
   .input-group {
     flex-direction: column;
     gap: 0.8rem;
+  }
+
+  button[onclick^="add"] {
+    width: 100%; /* Full width */
   }
 
 }
