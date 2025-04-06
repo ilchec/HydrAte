@@ -295,16 +295,24 @@ function collectDataForDate(date, memberName) {
   // Collect sweets
   const sweetsInputs = document.querySelectorAll('#sweetsContainer .input-group');
   data.sweets = Array.from(sweetsInputs).map(group => {
-    const name = group.querySelector('input[type="text"]').value.trim();
-    const amount = parseInt(group.querySelector('input[type="number"]').value);
+    const nameInput = group.querySelector('input[type="text"]');
+    const amountInput = group.querySelector('input[type="number"]');
+    if (!nameInput || !amountInput) return null;
+
+    const name = nameInput.value.trim();
+    const amount = parseInt(amountInput.value);
     return name && !isNaN(amount) ? { name, amount } : null;
   }).filter(entry => entry);
 
   // Collect activities
   const activityInputs = document.querySelectorAll('#activityContainer .input-group');
   data.activity = Array.from(activityInputs).map(group => {
-    const name = group.querySelector('input[type="text"]').value.trim();
-    const details = group.querySelector('input[type="text"]:nth-child(2)').value.trim();
+    const nameInput = group.querySelector('input[type="text"]');
+    const detailsInput = group.querySelector('input[type="text"]:nth-child(2)');
+    if (!nameInput || !detailsInput) return null;
+
+    const name = nameInput.value.trim();
+    const details = detailsInput.value.trim();
     return name ? { name, details } : null;
   }).filter(entry => entry);
 
@@ -320,7 +328,7 @@ function collectDataForDate(date, memberName) {
 
   // Collect weight
   const weightInput = document.querySelector('input[type="number"][onchange^="saveWeight"]');
-  data.weight = parseFloat(weightInput.value);
+  data.weight = weightInput ? parseFloat(weightInput.value) : null;
 
   return data;
 }
