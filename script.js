@@ -146,10 +146,6 @@ function initApp() {
 }
 
 function renderDiary(member) {
-  const settingsButton = document.querySelector('button[onclick="renderSettings()"]');
-  if (settingsButton) {
-    settingsButton.style.display = "block";
-  }
   const content = document.getElementById("content");
   const today = new Date().toISOString().split('T')[0];
   let html = "";
@@ -231,6 +227,10 @@ function renderDiary(member) {
         </div>
         <div class="section">
           <strong>Weight:</strong> <input type="number" value="${data.weight || member.weight}" onchange="saveWeight(this.value, '${date}', '${member.name}')" data-date="${date}" /> kg
+        </div>
+        <div class="section">
+          <strong>Note:</strong>
+          <textarea id="note-${date}" placeholder="Add a note for this day...">${data.note || ''}</textarea>
         </div>
         ${saveButton}
       </div>
@@ -347,6 +347,10 @@ function collectDataForDate(date, memberName) {
   // Collect weight
   const weightInput = document.querySelector(`input[type="number"][onchange^="saveWeight"][data-date="${date}"]`);
   data.weight = weightInput ? parseFloat(weightInput.value) : null;
+
+  // Collect note
+  const noteInput = document.getElementById(`note-${date}`);
+  data.note = noteInput ? noteInput.value.trim() : '';
 
   return data;
 }
