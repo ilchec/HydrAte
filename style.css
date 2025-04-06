@@ -22,7 +22,8 @@ button:hover {
   background-color: #218838;
 }
 
-button[onclick^="add"] {
+button[onclick^="add"],
+button[onclick^="save"] {
   background-color: transparent; /* Transparent background */
   border: 2px solid #333; /* Dashed border */
   border-radius: 8px; /* Rounded corners */
@@ -32,7 +33,8 @@ button[onclick^="add"] {
   text-align: center; /* Center-align text */
 }
 
-button[onclick^="add"]:hover {
+button[onclick^="add"]:hover,
+button[onclick^="save"]:hover {
   background-color: #f8f9fa; /* Light background on hover */
   border-color: #007bff; /* Change border color on hover */
   color: #007bff; /* Change text color on hover */
