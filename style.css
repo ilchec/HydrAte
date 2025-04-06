@@ -194,12 +194,6 @@ textarea {
 /* Responsive Styles for Mobile Screens */
 @media (max-width: 600px) {
 
-  #user-name {
-    text-align: left;
-    margin-top: 0.5rem;
-    width: 100%;
-  }
-
   input[type="text"],
   input[type="number"],
   textarea {
