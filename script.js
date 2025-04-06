@@ -399,6 +399,10 @@ function collectDataForDate(date, memberName) {
   const weightInput = document.querySelector(`input[type="number"][onchange^="saveWeight"][data-date="${date}"]`);
   data.weight = weightInput ? parseFloat(weightInput.value) : null;
 
+  // Collect note
+  const noteInput = document.getElementById(`note-${date}`);
+  data.note = noteInput ? noteInput.value.trim() : '';
+
   return data;
 }
 
