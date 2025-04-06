@@ -193,6 +193,14 @@ textarea {
 
 /* Responsive Styles for Mobile Screens */
 @media (max-width: 600px) {
+  #menu-dropdown {
+    top: 100%; /* Position the dropdown right below the header */
+    right: 0; /* Align the dropdown to the right edge */
+    left: 0; /* Ensure the dropdown spans the full width */
+    width: 100%; /* Make the dropdown occupy 100% width */
+    border-radius: 0; /* Remove rounded corners for a cleaner look */
+    margin-bottom: 1rem; /* Add some space below the dropdown */;
+  }
 
   input[type="text"],
   input[type="number"],
