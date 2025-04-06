@@ -297,9 +297,10 @@ function collectDataForDate(date, memberName) {
   }).filter(entry => entry);
 
   // Collect exercises
-  data.exercises = currentMember.exercises.map(exercise => {
-    const exerciseInputs = document.querySelectorAll(`.exercise-entry input`);
+  data.exercises = currentMember.exercises.map((exercise, exerciseIndex) => {
+    const exerciseInputs = document.querySelectorAll(`.exercise-entry:nth-of-type(${exerciseIndex + 1}) input`);
     const actualReps = Array.from(exerciseInputs)
+      .slice(0, exercise.reps.length) // Limit to the number of sets defined in the settings
       .map(input => parseInt(input.value))
       .filter(value => !isNaN(value));
     return { name: exercise.name, actualReps };
