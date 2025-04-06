@@ -139,6 +139,10 @@ function initTabs() {
     return;
   }
 
+  // Set the user's name in the header
+  const userNameEl = document.getElementById("user-name");
+  userNameEl.textContent = config.members[0].name;
+
   config.members.forEach((member, index) => {
     const tab = document.createElement("div");
     tab.className = "tab" + (index === 0 ? " active" : "");
@@ -386,6 +390,11 @@ function updateSweetsDatalist() {
 function updateActivityDatalist() {
   const activityList = document.getElementById("activityList");
   activityList.innerHTML = config.members[0].activity.map(a => `<option value="${a}">`).join('');
+}
+
+function toggleMenu() {
+  const tabsEl = document.getElementById("tabs");
+  tabsEl.style.display = tabsEl.style.display === "none" ? "flex" : "none";
 }
 
 loadConfig();

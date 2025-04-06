@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Family Diary App</title>
+  <title>HydrAte!</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/png" href="glass-of-water.png" />
   <link rel="apple-touch-icon" href="glass-of-water.png">
@@ -13,12 +13,15 @@
 
 </head>
 <body>
-  <div id="settings-container">
-    <button id="settings-button" onclick="renderSettings()">
-      <img src="cogwheel.png" alt="Settings" class="settings-icon" />
-      Settings
+  <header id="app-header">
+    <img src="glass-of-water.png" alt="App Logo" id="app-logo" />
+    <div id="user-name">User Name</div>
+    <button id="hamburger-menu" onclick="toggleMenu()">
+      <span class="hamburger-icon"></span>
+      <span class="hamburger-icon"></span>
+      <span class="hamburger-icon"></span>
     </button>
-  </div>
+  </header>
   <div id="tabs" class="tabs"></div>
   <div id="content"></div>
   <div id="saveMessage" style="margin-top: 1rem; color: #28a745; font-weight: bold; display: none;">Saved!</div>
