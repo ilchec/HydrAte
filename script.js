@@ -31,10 +31,6 @@ function saveMeasures() {
 }
 
 function renderSettings() {
-  const settingsButton = document.querySelector('button[onclick="renderSettings()"]');
-  if (settingsButton) {
-    settingsButton.style.display = "none";
-  }
   const content = document.getElementById("content");
 
   // Fetch the first member's data from config if available
@@ -45,26 +41,12 @@ function renderSettings() {
     sweets: [],
     activity: [],
     exercises: [],
-    medications: { regular: [], occasional: [] } // Ensure medications is initialized
+    medications: { regular: [], occasional: [] }
   };
-
-  // Ensure medications object exists
-  member.medications.regular = member.medications.regular || [];
-  member.medications.occasional = member.medications.occasional || [];
-
-  const sweets = member.sweets.join(", ");
-  const activities = member.activity.join(", ");
-  const regularMedications = member.medications.regular
-    .map(med => `${med.name}|${med.dose}`)
-    .join("\n");
-  const occasionalMedications = member.medications.occasional.join(", ");
-  const exercises = member.exercises
-    .map(ex => `${ex.name}|${ex.sets}|${ex.reps.join(",")}`)
-    .join("\n");
 
   content.innerHTML = `
     <h2>Settings</h2>
-    <p>Please update the required data:</p>
+    <p>Update your settings below:</p>
     <div class="section">
       <label for="memberName"><strong>Member Name:</strong></label>
       <input type="text" id="memberName" value="${member.name}" placeholder="Enter name" />
@@ -78,24 +60,98 @@ function renderSettings() {
       <input type="number" id="waterNorm" value="${member.waterNorm}" placeholder="Enter water norm" />
     </div>
     <div class="section">
-      <label for="sweets"><strong>Favorite Sweets (comma-separated):</strong></label>
-      <textarea id="sweets" placeholder="e.g., Chocolate, Candy">${sweets}</textarea>
+      <label><strong>Favorite Sweets:</strong></label>
+      <div id="sweetsContainer">
+        ${member.sweets
+          .map(
+            sweet => `
+          <div class="input-group">
+            <input type="text" value="${sweet}" placeholder="Enter sweet" />
+            <button onclick="removeParent(this)">Remove</button>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+      <button onclick="addSweet()">+ Add Sweet</button>
     </div>
     <div class="section">
-      <label for="activities"><strong>Favorite Activities (comma-separated):</strong></label>
-      <textarea id="activities" placeholder="e.g., Walking, Yoga">${activities}</textarea>
+      <label><strong>Favorite Activities:</strong></label>
+      <div id="activitiesContainer">
+        ${member.activity
+          .map(
+            activity => `
+          <div class="input-group">
+            <input type="text" value="${activity}" placeholder="Enter activity" />
+            <button onclick="removeParent(this)">Remove</button>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+      <button onclick="addActivity()">+ Add Activity</button>
     </div>
     <div class="section">
-      <label for="regularMedications"><strong>Regular Medications (one per line, format: Name|Dose):</strong></label>
-      <textarea id="regularMedications" placeholder="e.g., Aspirin|100mg">${regularMedications}</textarea>
+      <label><strong>Regular Medications:</strong></label>
+      <div id="regularMedicationsContainer">
+        ${member.medications.regular
+          .map(
+            med => `
+          <div class="input-group">
+            <input type="text" value="${med.name}" placeholder="Medication Name" />
+            <input type="text" value="${med.dose}" placeholder="Dose" />
+            <button onclick="removeParent(this)">Remove</button>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+      <button onclick="addRegularMedication()">+ Add Medication</button>
     </div>
     <div class="section">
-      <label for="occasionalMedications"><strong>Occasional Medications (comma-separated):</strong></label>
-      <textarea id="occasionalMedications" placeholder="e.g., Ibuprofen, Paracetamol">${occasionalMedications}</textarea>
+      <label><strong>Occasional Medications:</strong></label>
+      <div id="occasionalMedicationsContainer">
+        ${member.medications.occasional
+          .map(
+            med => `
+          <div class="input-group">
+            <input type="text" value="${med}" placeholder="Medication Name" />
+            <button onclick="removeParent(this)">Remove</button>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+      <button onclick="addOccasionalMedication()">+ Add Medication</button>
     </div>
     <div class="section">
-      <label for="exercises"><strong>Exercises (one per line, format: Name|Sets|Reps):</strong></label>
-      <textarea id="exercises" placeholder="e.g., Push-ups|3|10,10,10">${exercises}</textarea>
+      <label><strong>Exercises:</strong></label>
+      <div id="exercisesContainer">
+        ${member.exercises
+          .map(
+            exercise => `
+          <div class="exercise-entry">
+            <input type="text" value="${exercise.name}" placeholder="Exercise Name" />
+            <div class="sets-container">
+              ${exercise.reps
+                .map(
+                  rep => `
+                <div class="input-group">
+                  <input type="number" value="${rep}" placeholder="Reps" />
+                  <button onclick="removeParent(this)">Remove</button>
+                </div>
+              `
+                )
+                .join("")}
+            </div>
+            <button onclick="addSet(this)">+ Add Set</button>
+            <button onclick="removeParent(this)">Remove Exercise</button>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+      <button onclick="addExercise()">+ Add Exercise</button>
     </div>
     <button onclick="saveSettings()">Save</button>
   `;
@@ -105,33 +161,42 @@ function saveSettings() {
   const name = document.getElementById("memberName").value.trim();
   const weight = parseFloat(document.getElementById("memberWeight").value);
   const waterNorm = parseInt(document.getElementById("waterNorm").value);
-  const sweets = document.getElementById("sweets").value.split(',').map(s => s.trim());
-  const activities = document.getElementById("activities").value.split(',').map(a => a.trim());
-  const regularMedications = document.getElementById("regularMedications").value.split('\n').map(line => {
-    const [name, dose] = line.split('|');
-    return { name: name.trim(), dose: dose.trim() };
-  });
-  const occasionalMedications = document.getElementById("occasionalMedications").value.split(',').map(m => m.trim());
-  const exerciseLines = document.getElementById("exercises").value.split('\n');
-  const exercises = exerciseLines.map(line => {
-    const [name, setsStr, repsStr] = line.split('|');
-    return {
-      name: name.trim(),
-      sets: parseInt(setsStr),
-      reps: repsStr.split(',').map(r => parseInt(r))
-    };
-  });
 
-  if (!name || isNaN(weight) || isNaN(waterNorm)) {
-    alert("Please fill out all required fields.");
-    return;
-  }
+  const sweets = Array.from(document.querySelectorAll("#sweetsContainer input"))
+    .map(input => input.value.trim())
+    .filter(value => value);
+
+  const activities = Array.from(document.querySelectorAll("#activitiesContainer input"))
+    .map(input => input.value.trim())
+    .filter(value => value);
+
+  const regularMedications = Array.from(document.querySelectorAll("#regularMedicationsContainer .input-group"))
+    .map(group => {
+      const name = group.querySelector("input:nth-of-type(1)").value.trim();
+      const dose = group.querySelector("input:nth-of-type(2)").value.trim();
+      return name ? { name, dose } : null;
+    })
+    .filter(entry => entry);
+
+  const occasionalMedications = Array.from(document.querySelectorAll("#occasionalMedicationsContainer input"))
+    .map(input => input.value.trim())
+    .filter(value => value);
+
+  const exercises = Array.from(document.querySelectorAll("#exercisesContainer .exercise-entry"))
+    .map(entry => {
+      const name = entry.querySelector("input[type='text']").value.trim();
+      const reps = Array.from(entry.querySelectorAll(".sets-container input"))
+        .map(input => parseInt(input.value))
+        .filter(value => !isNaN(value));
+      return name ? { name, reps } : null;
+    })
+    .filter(entry => entry);
 
   config.members = [
     {
       name,
-      weight,
-      waterNorm,
+      weight: isNaN(weight) ? null : weight,
+      waterNorm: isNaN(waterNorm) ? null : waterNorm,
       sweets,
       activity: activities,
       exercises,
@@ -143,7 +208,7 @@ function saveSettings() {
   ];
 
   saveConfig();
-  alert("Settings saved! Redirecting to the diary...");
+  alert("Settings saved!");
   initApp();
 }
 
@@ -820,4 +885,78 @@ function addRetrospectiveData() {
   } else {
     alert(`Data for ${date} already exists.`);
   }
+}
+
+//User-friendly setup
+function addSweet() {
+  const container = document.getElementById("sweetsContainer");
+  const div = document.createElement("div");
+  div.className = "input-group";
+  div.innerHTML = `
+    <input type="text" placeholder="Enter sweet" />
+    <button onclick="removeParent(this)">Remove</button>
+  `;
+  container.appendChild(div);
+}
+
+function addActivity() {
+  const container = document.getElementById("activitiesContainer");
+  const div = document.createElement("div");
+  div.className = "input-group";
+  div.innerHTML = `
+    <input type="text" placeholder="Enter activity" />
+    <button onclick="removeParent(this)">Remove</button>
+  `;
+  container.appendChild(div);
+}
+
+function addRegularMedication() {
+  const container = document.getElementById("regularMedicationsContainer");
+  const div = document.createElement("div");
+  div.className = "input-group";
+  div.innerHTML = `
+    <input type="text" placeholder="Medication Name" />
+    <input type="text" placeholder="Dose" />
+    <button onclick="removeParent(this)">Remove</button>
+  `;
+  container.appendChild(div);
+}
+
+function addOccasionalMedication() {
+  const container = document.getElementById("occasionalMedicationsContainer");
+  const div = document.createElement("div");
+  div.className = "input-group";
+  div.innerHTML = `
+    <input type="text" placeholder="Medication Name" />
+    <button onclick="removeParent(this)">Remove</button>
+  `;
+  container.appendChild(div);
+}
+
+function addExercise() {
+  const container = document.getElementById("exercisesContainer");
+  const div = document.createElement("div");
+  div.className = "exercise-entry";
+  div.innerHTML = `
+    <input type="text" placeholder="Exercise Name" />
+    <div class="sets-container"></div>
+    <button onclick="addSet(this)">+ Add Set</button>
+    <button onclick="removeParent(this)">Remove Exercise</button>
+  `;
+  container.appendChild(div);
+}
+
+function addSet(button) {
+  const setsContainer = button.previousElementSibling;
+  const div = document.createElement("div");
+  div.className = "input-group";
+  div.innerHTML = `
+    <input type="number" placeholder="Reps" />
+    <button onclick="removeParent(this)">Remove</button>
+  `;
+  setsContainer.appendChild(div);
+}
+
+function removeParent(button) {
+  button.parentElement.remove();
 }
