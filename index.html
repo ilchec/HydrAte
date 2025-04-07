@@ -24,8 +24,11 @@
     <div id="menu-dropdown" class="hidden">
       <ul>
         <li onclick="renderSettings()">Settings</li>
+        <li onclick="exportDiary()">Export Diary</li>
+        <li onclick="document.getElementById('importFile').click()">Import Diary</li>
       </ul>
     </div>
+    <input type="file" id="importFile" style="display: none;" onchange="importDiary(event)" />
   </header>
   <div id="content"></div>
   <div id="saveMessage" style="margin-top: 1rem; color: #28a745; font-weight: bold; display: none;">Saved!</div>
