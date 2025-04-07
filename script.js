@@ -193,8 +193,26 @@ function renderSettings() {
       </div>
       <button onclick="addExercises()" ${settings.trackExercises ? "" : "style='display: none;'"}>+ Add Exercise</button>
     </div>
-    <button onclick="saveSettings()">Save</button>
   `;
+
+  // Add the Save button
+  const saveButton = document.createElement("div");
+  saveButton.id = "saveButton";
+  saveButton.textContent = "Save Changes";
+  saveButton.classList.remove("visible"); // Initially hidden
+  saveButton.onclick = () => {
+    saveSettings();
+    saveButton.classList.remove("visible"); // Hide the button after saving
+  };
+  document.body.appendChild(saveButton);
+
+  // Add event listeners to show the Save button when changes are made
+  const inputs = content.querySelectorAll("input, textarea");
+  inputs.forEach(input => {
+    input.addEventListener("input", () => {
+      saveButton.classList.add("visible");
+    });
+  });
 
   // Add event listeners for checkboxes to toggle visibility
   document.getElementById("trackWeight").addEventListener("change", toggleSectionVisibility);
