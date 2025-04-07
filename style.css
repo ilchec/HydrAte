@@ -14,6 +14,11 @@ button {
   transition: background-color 0.3s;
 }
 
+.button-100 {
+  width: 100% !important;
+  margin: 0.5rem 0 !important;
+}
+
 button:hover {
   background-color: #218838;
 }
@@ -98,6 +103,35 @@ textarea:focus {
   outline: none; /* Remove default focus outline */
   border-color: #218838; /* Darker green border on focus */
   background-color: #e9f5e9; /* Slightly green background on focus */
+}
+
+/* Style for the "X" button */
+button.remove-button {
+  background-color: white; /* Red background */
+  color: red; /* White text */
+  border: none; /* Remove border */
+  border-radius: 4px; /* Rounded corners */
+  font-size: 1rem; /* Font size */
+  font-weight: bold; /* Bold text */
+  padding: 0.2rem 0.5rem; /* Adjust padding */
+  cursor: pointer; /* Pointer cursor */
+  height: 2.4rem; /* Match input height */
+  display: flex; /* Flexbox for alignment */
+  align-items: center; /* Center vertically */
+  justify-content: center; /* Center horizontally */
+  margin-left: 0.5rem; /* Add spacing between input and button */
+  margin-top: -0.5rem;
+}
+
+button.remove-button:hover {
+  background-color: #c82333; /* Darker red on hover */
+}
+
+/* Placeholder text for empty containers */
+.placeholder {
+  color: #6c757d; /* Gray text */
+  font-style: italic;
+  margin: 0.5rem 0;
 }
 
 /* Header Styles */

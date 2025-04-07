@@ -95,7 +95,7 @@ function renderSettings() {
             sweet => `
           <div class="input-group">
             <input type="text" value="${sweet}" placeholder="Enter sweet" />
-            <button onclick="removeParent(this)">Remove</button>
+            <button class="remove-button" onclick="removeParent(this)">X</button>
           </div>
         `
           )
@@ -114,7 +114,7 @@ function renderSettings() {
             activity => `
           <div class="input-group">
             <input type="text" value="${activity}" placeholder="Enter activity" />
-            <button onclick="removeParent(this)">Remove</button>
+            <button class="remove-button" Parent(this)">X</button>
           </div>
         `
           )
@@ -134,7 +134,7 @@ function renderSettings() {
           <div class="input-group">
             <input type="text" value="${med.name}" placeholder="Medication Name" required />
             <input type="text" value="${med.dose}" placeholder="Dose" required />
-            <button onclick="removeParent(this)">Remove</button>
+            <button class="remove-button" onclick="removeParent(this)">X</button>
           </div>
         `
           )
@@ -153,7 +153,7 @@ function renderSettings() {
             med => `
           <div class="input-group">
             <input type="text" value="${med}" placeholder="Medication Name" />
-            <button onclick="removeParent(this)">Remove</button>
+            <button class="remove-button" onclick="removeParent(this)">X</button>
           </div>
         `
           )
@@ -178,14 +178,14 @@ function renderSettings() {
                   rep => `
                 <div class="input-group">
                   <input type="number" value="${rep}" placeholder="Reps" required />
-                  <button onclick="removeParent(this)">Remove</button>
+                  <button class="remove-button" onclick="removeParent(this)">X</button>
                 </div>
               `
                 )
                 .join("")}
             </div>
             <button onclick="addSet(this)">+ Add Set</button>
-            <button onclick="removeParent(this)">Remove Exercise</button>
+            <button class="remove-button button-100" onclick="removeParent(this)">Remove Exercise</button>
           </div>
         `
           )
@@ -214,6 +214,14 @@ function renderSettings() {
     });
   });
 
+  // Add event listeners for dynamically created elements
+  const addButtons = content.querySelectorAll("button[onclick^='add']");
+  addButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      saveButton.classList.add("visible");
+    });
+  });
+
   // Add event listeners for checkboxes to toggle visibility
   document.getElementById("trackWeight").addEventListener("change", toggleSectionVisibility);
   document.getElementById("trackWaterNorm").addEventListener("change", toggleSectionVisibility);
@@ -234,19 +242,20 @@ function saveSettings() {
     : null;
 
   const sweets = document.getElementById("trackSweets").checked
-    ? Array.from(document.querySelectorAll("#sweetsContainer input"))
+    ? Array.from(document.querySelectorAll("#sweetsContainer .input-group input"))
         .map(input => input.value.trim())
         .filter(value => value)
     : [];
 
   const activities = document.getElementById("trackActivities").checked
-    ? Array.from(document.querySelectorAll("#activitiesContainer input"))
+    ? Array.from(document.querySelectorAll("#activitiesContainer .input-group input"))
         .map(input => input.value.trim())
         .filter(value => value)
     : [];
 
-  const regularMedications = document.getElementById("trackRegularMedications").checked
-    ? Array.from(document.querySelectorAll("#regularMedicationsContainer .input-group"))
+  const regularMedicationsContainer = document.getElementById("regularMedicationsContainer");
+  const regularMedications = document.getElementById("trackRegularMedications").checked && regularMedicationsContainer
+    ? Array.from(regularMedicationsContainer.querySelectorAll(".input-group"))
         .map(group => {
           const name = group.querySelector("input:nth-of-type(1)").value.trim();
           const dose = group.querySelector("input:nth-of-type(2)").value.trim();
@@ -255,8 +264,9 @@ function saveSettings() {
         .filter(entry => entry)
     : [];
 
-  const occasionalMedications = document.getElementById("trackOccasionalMedications").checked
-    ? Array.from(document.querySelectorAll("#occasionalMedicationsContainer .input-group"))
+  const occasionalMedicationsContainer = document.getElementById("occasionalMedicationsContainer");
+  const occasionalMedications = document.getElementById("trackOccasionalMedications").checked && occasionalMedicationsContainer
+    ? Array.from(occasionalMedicationsContainer.querySelectorAll(".input-group"))
         .map(group => {
           const name = group.querySelector("input:nth-of-type(1)").value.trim();
           return name ? name : null;
@@ -264,8 +274,9 @@ function saveSettings() {
         .filter(entry => entry)
     : [];
 
-  const exercises = document.getElementById("trackExercises").checked
-    ? Array.from(document.querySelectorAll("#exercisesContainer .exercise-entry"))
+  const exercisesContainer = document.getElementById("exercisesContainer");
+  const exercises = document.getElementById("trackExercises").checked && exercisesContainer
+    ? Array.from(exercisesContainer.querySelectorAll(".exercise-entry"))
         .map(entry => {
           const name = entry.querySelector("input[type='text']").value.trim();
           const reps = Array.from(entry.querySelectorAll(".sets-container input"))
@@ -276,6 +287,7 @@ function saveSettings() {
         .filter(entry => entry)
     : [];
 
+  // Update the config object
   config.members = [
     {
       name,
@@ -286,7 +298,7 @@ function saveSettings() {
       exercises,
       medications: {
         regular: regularMedications,
-        occasional: occasionalMedications // Save occasional medications here
+        occasional: occasionalMedications
       },
       settings: {
         trackWeight: document.getElementById("trackWeight").checked,
@@ -300,7 +312,23 @@ function saveSettings() {
     }
   ];
 
+  // Update the measures object for all dates
+  Object.keys(measures).forEach(date => {
+    if (measures[date][name]) {
+      const existingMedications = measures[date][name].regularMedications || [];
+      measures[date][name].regularMedications = regularMedications.map(med => {
+        const existingMed = existingMedications.find(m => m.name === med.name);
+        return {
+          name: med.name,
+          dose: med.dose,
+          taken: existingMed ? existingMed.taken : false // Preserve "taken" state for existing medications
+        };
+      });
+    }
+  });
+
   saveConfig();
+  saveMeasures();
   alert("Settings saved!");
   initApp();
 }
@@ -350,7 +378,7 @@ function initApp() {
       weight: config.members[0].weight,
       note: ""
     };
-    saveMeasures(); // Save the updated measures to localStorage
+    saveMeasures();
   }
 
   // Set the current member and render the diary
@@ -993,7 +1021,7 @@ function addSweets() {
   div.className = "input-group";
   div.innerHTML = `
     <input type="text" placeholder="Enter sweet" />
-    <button onclick="removeParent(this)">Remove</button>
+    <button class="remove-button" onclick="removeParent(this)">X</button>
   `;
   container.appendChild(div);
 }
@@ -1005,7 +1033,7 @@ function addActivities() {
   div.className = "input-group";
   div.innerHTML = `
     <input type="text" placeholder="Enter activity" />
-    <button onclick="removeParent(this)">Remove</button>
+    <button class="remove-button" onclick="removeParent(this)">X</button>
   `;
   container.appendChild(div);
 }
@@ -1018,7 +1046,7 @@ function addRegularMedications() {
   div.innerHTML = `
     <input type="text" placeholder="Medication Name" />
     <input type="text" placeholder="Dose" />
-    <button onclick="removeParent(this)">Remove</button>
+    <button class="remove-button" onclick="removeParent(this)">X</button>
   `;
   container.appendChild(div);
 }
@@ -1030,7 +1058,7 @@ function addOccasionalMedications() {
   div.className = "input-group";
   div.innerHTML = `
     <input type="text" placeholder="Medication Name" />
-    <button onclick="removeParent(this)">Remove</button>
+    <button class="remove-button" onclick="removeParent(this)">X</button>
   `;
   container.appendChild(div);
 }
@@ -1044,7 +1072,7 @@ function addExercises() {
     <input type="text" placeholder="Exercise Name" />
     <div class="sets-container"></div>
     <button onclick="addSet(this)">+ Add Set</button>
-    <button onclick="removeParent(this)">Remove Exercise</button>
+    <button class="remove-button button-100" onclick="removeParent(this)">Remove Exercise</button>
   `;
   container.appendChild(div);
 }
@@ -1055,13 +1083,28 @@ function addSet(button) {
   div.className = "input-group";
   div.innerHTML = `
     <input type="number" placeholder="Reps" />
-    <button onclick="removeParent(this)">Remove</button>
+    <button class="remove-button" onclick="removeParent(this)">X</button>
   `;
   setsContainer.appendChild(div);
 }
 
 function removeParent(button) {
-  button.parentElement.remove();
+  const parent = button.parentElement;
+  const container = parent.parentElement;
+
+  // Remove the parent element (the input group)
+  parent.remove();
+
+  // If the container is empty, add a placeholder or keep it visible
+  if (container && container.children.length === 0) {
+    container.innerHTML = `<p class="placeholder">No entries. Add new items using the button below.</p>`;
+  }
+
+  // Show the Save button
+  const saveButton = document.getElementById("saveButton");
+  if (saveButton) {
+    saveButton.classList.add("visible");
+  }
 }
 
 function toggleSectionVisibility(event) {
