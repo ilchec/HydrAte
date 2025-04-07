@@ -49,6 +49,28 @@ button[onclick^="save"]:hover {
   color: #007bff; /* Change text color on hover */
 }
 
+/* Fixed Save Button */
+#saveButton {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #28a745;
+  color: white;
+  text-align: center;
+  padding: 1rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.3s ease-in-out;
+  transform: translateY(100%); /* Initially hidden */
+  z-index: 1000;
+}
+
+#saveButton.visible {
+  transform: translateY(0); /* Slide up when visible */
+}
+
 /* General input styles */
 input,
 textarea {
@@ -252,7 +274,7 @@ textarea:focus {
   input,
   textarea {
     width: 100%;
-    margin: 0 .5rem 0.5rem 0; /* Adjust padding for mobile */
+    margin: 0 0 0.5rem 0; /* Adjust padding for mobile */
     font-size: 1rem;
   }
 

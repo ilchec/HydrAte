@@ -162,12 +162,38 @@ function initApp() {
     return;
   }
 
-  // Ensure medications is initialized
-  config.members[0].medications = config.members[0].medications || {regular: [], occasional: []};
+  // Ensure medications are initialized
+  config.members[0].medications = config.members[0].medications || { regular: [], occasional: [] };
 
   // Set the user's name in the header
   const userNameEl = document.getElementById("user-name");
   userNameEl.textContent = config.members[0].name;
+
+  // Ensure today's record exists in measures
+  const today = new Date().toISOString().split('T')[0];
+  if (!measures[today]) {
+    measures[today] = {};
+  }
+  if (!measures[today][config.members[0].name]) {
+    measures[today][config.members[0].name] = {
+      water: 0,
+      sweets: [],
+      regularMedications: config.members[0].medications.regular.map(med => ({
+        name: med.name,
+        dose: med.dose,
+        taken: false // Default to not taken
+      })),
+      occasionalMedications: [],
+      activity: [],
+      exercises: config.members[0].exercises.map(ex => ({
+        name: ex.name,
+        actualReps: Array(ex.reps.length).fill(0)
+      })),
+      weight: config.members[0].weight,
+      note: ""
+    };
+    saveMeasures(); // Save the updated measures to localStorage
+  }
 
   // Set the current member and render the diary
   currentMember = config.members[0];
@@ -179,6 +205,9 @@ function renderDiary(member) {
   const today = new Date().toISOString().split('T')[0];
   let html = "";
 
+  // Save the current open/close state of the accordions
+  const openAccordions = Array.from(document.querySelectorAll(".accordion.open")).map(acc => acc.dataset.date);
+
   // Get all dates for the member, ensuring today's date is only included once
   const allDates = Object.keys(measures)
     .filter(date => measures[date][member.name])
@@ -188,7 +217,8 @@ function renderDiary(member) {
   }
 
   allDates.forEach((date, idx) => {
-    const open = idx === 0 ? 'open' : '';
+    // Ensure the first accordion (today) is open by default
+    const open = idx === 0 || openAccordions.includes(date) ? 'open' : '';
     const data = measures[date]?.[member.name] || {};
 
     html += `
@@ -237,12 +267,12 @@ function renderDiary(member) {
         <div class="section">
           <strong>Regular Medications:</strong>
           <div id="regularMedicationsContainer-${date}">
-            ${(member.medications?.regular || []).map(med => `
+            ${(data.regularMedications || []).map(med => `
               <div class="input-group">
                 <img 
-                  src="${data.regularMedications?.[med.name] ? 'images/medicine-filled.png' : 'images/medicine.png'}" 
+                  src="${med.taken ? 'images/medicine-filled.png' : 'images/medicine.png'}" 
                   class="medicine" 
-                  onclick="toggleRegularMedication('${date}', '${member.name}', '${med.name}')"
+                  onclick="toggleRegularMedication('${date}', '${member.name}', '${med.name}', event)"
                   alt="Medicine Checkbox"
                 />
                 <span>${med.name} (${med.dose})</span>
@@ -253,7 +283,7 @@ function renderDiary(member) {
         <div class="section">
           <strong>Occasional Medications:</strong>
           <div id="occasionalMedicationsContainer-${date}">
-            ${(data.occasionalMedications || [{ name: "", dose: "" }]).map(entry => `
+            ${(data.occasionalMedications || []).map(entry => `
               <div class="input-group">
                 <input list="occasionalMedicationsList" value="${entry.name || ''}" placeholder="Type medication" onchange="addNewMedication(this.value)" /> 
                 <input type="text" value="${entry.dose || ''}" placeholder="Dose" />
@@ -288,13 +318,27 @@ function renderDiary(member) {
           <strong>Note:</strong>
           <textarea id="note-${date}" placeholder="Add a note for this day...">${data.note || ''}</textarea>
         </div>
-        <button onclick="saveMeasurements('${date}', '${member.name}')">Save</button>
       </div>
     </div>
     `;
   });
 
   content.innerHTML = html;
+
+  // Add the Save button
+  const saveButton = document.createElement("div");
+  saveButton.id = "saveButton";
+  saveButton.textContent = "Save Changes";
+  saveButton.onclick = () => saveMeasurements(today, member.name);
+  document.body.appendChild(saveButton);
+
+  // Add event listeners to show the Save button when editing
+  const inputs = content.querySelectorAll("input, textarea");
+  inputs.forEach(input => {
+    input.addEventListener("input", () => {
+      saveButton.classList.add("visible");
+    });
+  });
 }
 
 function fillGlass(el, count, date, memberName) {
@@ -332,6 +376,11 @@ function addSweetsEntry(date) {
     <input type="number" placeholder="Amount" />
   `;
   container.appendChild(div);
+  // Show the Save button
+  const saveButton = document.getElementById("saveButton");
+  if (saveButton) {
+    saveButton.classList.add("visible");
+  }
 }
 
 function addActivityEntry(date) {
@@ -345,6 +394,11 @@ function addActivityEntry(date) {
     <input type="text" placeholder="Details" />
   `;
   container.appendChild(div);
+  // Show the Save button
+  const saveButton = document.getElementById("saveButton");
+  if (saveButton) {
+    saveButton.classList.add("visible");
+  }
 }
 
 function saveMeasurements(date, memberName) {
@@ -358,7 +412,12 @@ function saveMeasurements(date, memberName) {
   saveMeasures();
   saveConfig();
 
+  // Show the alert and hide the Save button after the alert is dismissed
   alert('All measurements saved!');
+  const saveButton = document.getElementById("saveButton");
+  if (saveButton) {
+    saveButton.classList.remove("visible"); // Slide the button down and hide it
+  }
 }
 
 function collectDataForDate(date, memberName) {
@@ -379,27 +438,27 @@ function collectDataForDate(date, memberName) {
     const name = nameInput.value.trim();
     const amount = parseInt(amountInput.value);
 
-    // Add new sweets to the config if not already present
-    if (name && !config.members[0].sweets.includes(name)) {
-      config.members[0].sweets.push(name);
-    }
-
     return name && !isNaN(amount) ? { name, amount } : null;
   }).filter(entry => entry);
-  // Collect medications
-  const medicationInputs = document.querySelectorAll(`#medicationsContainer-${date} .input-group`);
-  data.medications = Array.from(medicationInputs).map(group => {
-    const nameInput = group.querySelector('input[list="medicationsList"]');
+
+  // Collect regular medications
+  const regularMedicationsContainer = document.querySelector(`#regularMedicationsContainer-${date}`);
+  data.regularMedications = Array.from(regularMedicationsContainer.querySelectorAll('.input-group')).map(group => {
+    const name = group.querySelector('span').textContent.split(' (')[0].trim();
+    const dose = group.querySelector('span').textContent.split(' (')[1]?.replace(')', '').trim();
+    const taken = group.querySelector('img').src.includes('medicine-filled.png');
+    return { name, dose, taken };
+  });
+
+  // Collect occasional medications
+  const occasionalMedicationsInputs = document.querySelectorAll(`#occasionalMedicationsContainer-${date} .input-group`);
+  data.occasionalMedications = Array.from(occasionalMedicationsInputs).map(group => {
+    const nameInput = group.querySelector('input[list="occasionalMedicationsList"]');
     const doseInput = group.querySelector('input[type="text"]:nth-of-type(2)');
     if (!nameInput || !doseInput) return null;
 
     const name = nameInput.value.trim();
     const dose = doseInput.value.trim();
-
-    // Add new medications to the config if not already present
-    if (name && !config.members[0].medications.includes(name)) {
-      config.members[0].medications.push(name);
-    }
 
     return name ? { name, dose } : null;
   }).filter(entry => entry);
@@ -413,11 +472,6 @@ function collectDataForDate(date, memberName) {
 
     const name = nameInput.value.trim();
     const details = detailsInput.value.trim();
-
-    // Add new activities to the config if not already present
-    if (name && !config.members[0].activity.includes(name)) {
-      config.members[0].activity.push(name);
-    }
 
     return name ? { name, details } : null;
   }).filter(entry => entry);
@@ -454,6 +508,11 @@ function addMedicationEntry(date) {
     <input type="text" placeholder="Dose" />
   `;
   container.appendChild(div);
+  // Show the Save button
+  const saveButton = document.getElementById("saveButton");
+  if (saveButton) {
+    saveButton.classList.add("visible");
+  }
 }
 
 function addNewMedication(medication) {
@@ -500,15 +559,30 @@ function toggleMenu() {
   menuDropdown.classList.toggle("visible");
 }
 
-function toggleRegularMedication(date, memberName, medicationName) {
+function toggleRegularMedication(date, memberName, medicationName, event) {
+  if (event) {
+    event.stopPropagation();
+  }
+  // Ensure the measures object is properly initialized
   measures[date] = measures[date] || {};
   measures[date][memberName] = measures[date][memberName] || {};
-  measures[date][memberName].regularMedications = measures[date][memberName].regularMedications || {};
+  measures[date][memberName].regularMedications = measures[date][memberName].regularMedications || [];
 
-  const currentState = measures[date][memberName].regularMedications[medicationName];
-  measures[date][memberName].regularMedications[medicationName] = !currentState;
+  // Find the medication in the regularMedications array
+  const medication = measures[date][memberName].regularMedications.find(med => med.name === medicationName);
 
+  if (medication) {
+    // Toggle the "taken" state
+    medication.taken = !medication.taken;
+  } else {
+    // If the medication is not found, add it with the "taken" state set to true
+    measures[date][memberName].regularMedications.push({ name: medicationName, dose: "", taken: true });
+  }
+
+  // Save the updated measures to localStorage
   saveMeasures();
+
+  // Re-render the diary to reflect the updated state
   renderDiary(config.members[0]);
 }
 
