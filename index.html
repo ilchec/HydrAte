@@ -1,25 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="script.js?v=${Date.now()}"></script>
   <link rel="stylesheet" href="style.css?v=${Date.now()}">
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const timestamp = Date.now();
-  
-      // Update script tags
-      document.querySelectorAll('script[src]').forEach(script => {
-        const src = script.getAttribute('src');
-        script.setAttribute('src', `${src}?v=${timestamp}`);
-      });
-  
-      // Update link tags for stylesheets
-      document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
-        const href = link.getAttribute('href');
-        link.setAttribute('href', `${href}?v=${timestamp}`);
-      });
-    });
-  </script>
+ 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HydrAte!</title>
