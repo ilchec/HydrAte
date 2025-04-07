@@ -203,7 +203,7 @@ function initApp() {
 function renderDiary(member) {
   const content = document.getElementById("content");
   const today = new Date().toISOString().split('T')[0];
-  let html = "";
+  let html = ``;
 
   // Save the current open/close state of the accordions
   const openAccordions = Array.from(document.querySelectorAll(".accordion.open")).map(acc => acc.dataset.date);
@@ -211,13 +211,10 @@ function renderDiary(member) {
   // Get all dates for the member, ensuring today's date is only included once
   const allDates = Object.keys(measures)
     .filter(date => measures[date][member.name])
-    .reverse();
-  if (!allDates.includes(today)) {
-    allDates.unshift(today);
-  }
+    .sort((a, b) => new Date(b) - new Date(a)); // Sort dates in descending order
 
   allDates.forEach((date, idx) => {
-    // Ensure the first accordion (today) is open by default
+    // Ensure the first accordion (newest date) is open by default
     const open = idx === 0 || openAccordions.includes(date) ? 'open' : '';
     const data = measures[date]?.[member.name] || {};
 
@@ -784,5 +781,43 @@ function generateReport() {
     `;
   } else {
     reportResults.innerHTML = "<p>No data found for the selected criteria.</p>";
+  }
+}
+
+//Retrospective Data
+function addRetrospectiveData() {
+  const date = prompt("Enter a date (YYYY-MM-DD):");
+  if (!date || isNaN(Date.parse(date))) {
+    alert("Invalid date. Please enter a valid date in the format YYYY-MM-DD.");
+    return;
+  }
+
+  if (!measures[date]) {
+    measures[date] = {};
+  }
+
+  if (!measures[date][currentMember.name]) {
+    measures[date][currentMember.name] = {
+      water: 0,
+      sweets: [],
+      regularMedications: config.members[0].medications.regular.map(med => ({
+        name: med.name,
+        dose: med.dose,
+        taken: false
+      })),
+      occasionalMedications: [],
+      activity: [],
+      exercises: config.members[0].exercises.map(ex => ({
+        name: ex.name,
+        actualReps: Array(ex.reps.length).fill(0)
+      })),
+      weight: config.members[0].weight,
+      note: ""
+    };
+    saveMeasures();
+    alert(`Retrospective data for ${date} has been added.`);
+    renderDiary(currentMember);
+  } else {
+    alert(`Data for ${date} already exists.`);
   }
 }
