@@ -298,7 +298,10 @@ function saveMeasurements(date, memberName) {
   measures[date] = measures[date] || {};
   measures[date][memberName] = data;
 
+  // Save the updated measures and config
   saveMeasures();
+  saveConfig();
+
   alert('All measurements saved!');
 }
 
@@ -319,6 +322,12 @@ function collectDataForDate(date, memberName) {
 
     const name = nameInput.value.trim();
     const amount = parseInt(amountInput.value);
+
+    // Add new sweets to the config if not already present
+    if (name && !config.members[0].sweets.includes(name)) {
+      config.members[0].sweets.push(name);
+    }
+
     return name && !isNaN(amount) ? { name, amount } : null;
   }).filter(entry => entry);
 
@@ -331,6 +340,12 @@ function collectDataForDate(date, memberName) {
 
     const name = nameInput.value.trim();
     const details = detailsInput.value.trim();
+
+    // Add new activities to the config if not already present
+    if (name && !config.members[0].activity.includes(name)) {
+      config.members[0].activity.push(name);
+    }
+
     return name ? { name, details } : null;
   }).filter(entry => entry);
 
