@@ -213,6 +213,16 @@ textarea:focus {
   background: #007bff;
 }
 
+/* Pill Icon Styles */
+.medicine {
+  width: 40px; /* Match the width of the glass icons */
+  height: 60px; /* Match the height of the glass icons */
+  margin-right: 8px; /* Add spacing between icons */
+  cursor: pointer; /* Make it clickable */
+  outline: none;
+  border: none;
+}
+
 /* Exercise Entry Styles */
 .exercise-entry {
   margin-bottom: 1.5rem;
@@ -247,8 +257,15 @@ textarea:focus {
   }
 
   .input-group {
-    flex-direction: column;
+    display: flex;
+    flex-direction: row;
     gap: 0.8rem;
+    align-items: center;;
+  }
+
+  .input-group span {
+    display: inline-block;
+    font-size: 1rem; /* Adjust font size if needed */
   }
 
   button[onclick^="add"],

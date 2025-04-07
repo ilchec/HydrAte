@@ -45,11 +45,19 @@ function renderSettings() {
     sweets: [],
     activity: [],
     exercises: [],
-    medications: [] // Initialize medications as an empty array
+    medications: { regular: [], occasional: [] } // Ensure medications is initialized
   };
+
+  // Ensure medications object exists
+  member.medications.regular = member.medications.regular || [];
+  member.medications.occasional = member.medications.occasional || [];
 
   const sweets = member.sweets.join(", ");
   const activities = member.activity.join(", ");
+  const regularMedications = member.medications.regular
+    .map(med => `${med.name}|${med.dose}`)
+    .join("\n");
+  const occasionalMedications = member.medications.occasional.join(", ");
   const exercises = member.exercises
     .map(ex => `${ex.name}|${ex.sets}|${ex.reps.join(",")}`)
     .join("\n");
@@ -71,15 +79,19 @@ function renderSettings() {
     </div>
     <div class="section">
       <label for="sweets"><strong>Favorite Sweets (comma-separated):</strong></label>
-      <textarea id="sweets" placeholder="e.g., Chocolate, Candy" >${sweets}</textarea>
+      <textarea id="sweets" placeholder="e.g., Chocolate, Candy">${sweets}</textarea>
     </div>
     <div class="section">
       <label for="activities"><strong>Favorite Activities (comma-separated):</strong></label>
-      <textarea id="activities" value="" placeholder="e.g., Walking, Yoga" >${activities}</textarea>
+      <textarea id="activities" placeholder="e.g., Walking, Yoga">${activities}</textarea>
     </div>
     <div class="section">
-      <label for="medications"><strong>Medications (comma-separated):</strong></label>
-      <textarea id="medications" placeholder="e.g., Aspirin, Ibuprofen">${member.medications.join(", ")}</textarea>
+      <label for="regularMedications"><strong>Regular Medications (one per line, format: Name|Dose):</strong></label>
+      <textarea id="regularMedications" placeholder="e.g., Aspirin|100mg">${regularMedications}</textarea>
+    </div>
+    <div class="section">
+      <label for="occasionalMedications"><strong>Occasional Medications (comma-separated):</strong></label>
+      <textarea id="occasionalMedications" placeholder="e.g., Ibuprofen, Paracetamol">${occasionalMedications}</textarea>
     </div>
     <div class="section">
       <label for="exercises"><strong>Exercises (one per line, format: Name|Sets|Reps):</strong></label>
@@ -95,7 +107,11 @@ function saveSettings() {
   const waterNorm = parseInt(document.getElementById("waterNorm").value);
   const sweets = document.getElementById("sweets").value.split(',').map(s => s.trim());
   const activities = document.getElementById("activities").value.split(',').map(a => a.trim());
-  const medications = document.getElementById("medications").value.split(',').map(m => m.trim());
+  const regularMedications = document.getElementById("regularMedications").value.split('\n').map(line => {
+    const [name, dose] = line.split('|');
+    return { name: name.trim(), dose: dose.trim() };
+  });
+  const occasionalMedications = document.getElementById("occasionalMedications").value.split(',').map(m => m.trim());
   const exerciseLines = document.getElementById("exercises").value.split('\n');
   const exercises = exerciseLines.map(line => {
     const [name, setsStr, repsStr] = line.split('|');
@@ -119,7 +135,10 @@ function saveSettings() {
       sweets,
       activity: activities,
       exercises,
-      medications
+      medications: {
+        regular: regularMedications,
+        occasional: occasionalMedications
+      }
     }
   ];
 
@@ -144,7 +163,7 @@ function initApp() {
   }
 
   // Ensure medications is initialized
-  config.members[0].medications = config.members[0].medications || [];
+  config.members[0].medications = config.members[0].medications || {regular: [], occasional: []};
 
   // Set the user's name in the header
   const userNameEl = document.getElementById("user-name");
@@ -171,9 +190,6 @@ function renderDiary(member) {
   allDates.forEach((date, idx) => {
     const open = idx === 0 ? 'open' : '';
     const data = measures[date]?.[member.name] || {};
-
-    // Add the "Save" button for all dates
-    const saveButton = `<button onclick="saveMeasurements('${date}', '${member.name}')">Save</button>`;
 
     html += `
     <div class="accordion ${open}" data-date="${date}">
@@ -219,17 +235,33 @@ function renderDiary(member) {
           </datalist>
         </div>
         <div class="section">
-          <strong>Medications:</strong>
-          <div id="medicationsContainer-${date}">
-            ${(data.medications || [{ name: "", dose: "" }]).map(entry => `
+          <strong>Regular Medications:</strong>
+          <div id="regularMedicationsContainer-${date}">
+            ${(member.medications?.regular || []).map(med => `
               <div class="input-group">
-                <input list="medicationsList" value="${entry.name || ''}" placeholder="Type medication" onchange="addNewMedication(this.value)" /> 
+                <img 
+                  src="${data.regularMedications?.[med.name] ? 'images/medicine-filled.png' : 'images/medicine.png'}" 
+                  class="medicine" 
+                  onclick="toggleRegularMedication('${date}', '${member.name}', '${med.name}')"
+                  alt="Medicine Checkbox"
+                />
+                <span>${med.name} (${med.dose})</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="section">
+          <strong>Occasional Medications:</strong>
+          <div id="occasionalMedicationsContainer-${date}">
+            ${(data.occasionalMedications || [{ name: "", dose: "" }]).map(entry => `
+              <div class="input-group">
+                <input list="occasionalMedicationsList" value="${entry.name || ''}" placeholder="Type medication" onchange="addNewMedication(this.value)" /> 
                 <input type="text" value="${entry.dose || ''}" placeholder="Dose" />
               </div>`).join('')}
           </div>
           <button onclick="addMedicationEntry('${date}')">+ Add More</button>
-          <datalist id="medicationsList">
-            ${member.medications.map(m => `<option value="${m}">`).join('')}
+          <datalist id="occasionalMedicationsList">
+            ${(member.medications?.occasional || []).map(m => `<option value="${m}">`).join('')}
           </datalist>
         </div>
         <div class="section">
@@ -256,7 +288,7 @@ function renderDiary(member) {
           <strong>Note:</strong>
           <textarea id="note-${date}" placeholder="Add a note for this day...">${data.note || ''}</textarea>
         </div>
-        ${saveButton}
+        <button onclick="saveMeasurements('${date}', '${member.name}')">Save</button>
       </div>
     </div>
     `;
@@ -412,13 +444,13 @@ function collectDataForDate(date, memberName) {
 }
 
 function addMedicationEntry(date) {
-  const container = document.querySelector(`#medicationsContainer-${date}`);
+  const container = document.querySelector(`#occasionalMedicationsContainer-${date}`);
   if (!container) return;
 
   const div = document.createElement("div");
   div.className = "input-group";
   div.innerHTML = `
-    <input list="medicationsList" placeholder="Type medication" onchange="addNewMedication(this.value)" /> 
+    <input list="occasionalMedicationsList" placeholder="Type medication" onchange="addNewMedication(this.value)" /> 
     <input type="text" placeholder="Dose" />
   `;
   container.appendChild(div);
@@ -466,6 +498,18 @@ function updateActivityDatalist() {
 function toggleMenu() {
   const menuDropdown = document.getElementById("menu-dropdown");
   menuDropdown.classList.toggle("visible");
+}
+
+function toggleRegularMedication(date, memberName, medicationName) {
+  measures[date] = measures[date] || {};
+  measures[date][memberName] = measures[date][memberName] || {};
+  measures[date][memberName].regularMedications = measures[date][memberName].regularMedications || {};
+
+  const currentState = measures[date][memberName].regularMedications[medicationName];
+  measures[date][memberName].regularMedications[medicationName] = !currentState;
+
+  saveMeasures();
+  renderDiary(config.members[0]);
 }
 
 loadConfig();
