@@ -44,7 +44,8 @@ function renderSettings() {
     waterNorm: "",
     sweets: [],
     activity: [],
-    exercises: []
+    exercises: [],
+    medications: [] // Initialize medications as an empty array
   };
 
   const sweets = member.sweets.join(", ");
@@ -77,6 +78,10 @@ function renderSettings() {
       <textarea id="activities" value="" placeholder="e.g., Walking, Yoga" >${activities}</textarea>
     </div>
     <div class="section">
+      <label for="medications"><strong>Medications (comma-separated):</strong></label>
+      <textarea id="medications" placeholder="e.g., Aspirin, Ibuprofen">${member.medications.join(", ")}</textarea>
+    </div>
+    <div class="section">
       <label for="exercises"><strong>Exercises (one per line, format: Name|Sets|Reps):</strong></label>
       <textarea id="exercises" placeholder="e.g., Push-ups|3|10,10,10">${exercises}</textarea>
     </div>
@@ -90,6 +95,7 @@ function saveSettings() {
   const waterNorm = parseInt(document.getElementById("waterNorm").value);
   const sweets = document.getElementById("sweets").value.split(',').map(s => s.trim());
   const activities = document.getElementById("activities").value.split(',').map(a => a.trim());
+  const medications = document.getElementById("medications").value.split(',').map(m => m.trim());
   const exerciseLines = document.getElementById("exercises").value.split('\n');
   const exercises = exerciseLines.map(line => {
     const [name, setsStr, repsStr] = line.split('|');
@@ -112,7 +118,8 @@ function saveSettings() {
       waterNorm,
       sweets,
       activity: activities,
-      exercises
+      exercises,
+      medications
     }
   ];
 
@@ -135,6 +142,9 @@ function initApp() {
     document.getElementById("content").innerHTML = "<p>No members available. Please configure the app in the settings.</p>";
     return;
   }
+
+  // Ensure medications is initialized
+  config.members[0].medications = config.members[0].medications || [];
 
   // Set the user's name in the header
   const userNameEl = document.getElementById("user-name");
@@ -206,6 +216,20 @@ function renderDiary(member) {
           <button onclick="addActivityEntry('${date}')">+ Add More</button>
           <datalist id="activityList">
             ${member.activity.map(a => `<option value="${a}">`).join('')}
+          </datalist>
+        </div>
+        <div class="section">
+          <strong>Medications:</strong>
+          <div id="medicationsContainer-${date}">
+            ${(data.medications || [{ name: "", dose: "" }]).map(entry => `
+              <div class="input-group">
+                <input list="medicationsList" value="${entry.name || ''}" placeholder="Type medication" onchange="addNewMedication(this.value)" /> 
+                <input type="text" value="${entry.dose || ''}" placeholder="Dose" />
+              </div>`).join('')}
+          </div>
+          <button onclick="addMedicationEntry('${date}')">+ Add More</button>
+          <datalist id="medicationsList">
+            ${member.medications.map(m => `<option value="${m}">`).join('')}
           </datalist>
         </div>
         <div class="section">
@@ -330,6 +354,23 @@ function collectDataForDate(date, memberName) {
 
     return name && !isNaN(amount) ? { name, amount } : null;
   }).filter(entry => entry);
+  // Collect medications
+  const medicationInputs = document.querySelectorAll(`#medicationsContainer-${date} .input-group`);
+  data.medications = Array.from(medicationInputs).map(group => {
+    const nameInput = group.querySelector('input[list="medicationsList"]');
+    const doseInput = group.querySelector('input[type="text"]:nth-of-type(2)');
+    if (!nameInput || !doseInput) return null;
+
+    const name = nameInput.value.trim();
+    const dose = doseInput.value.trim();
+
+    // Add new medications to the config if not already present
+    if (name && !config.members[0].medications.includes(name)) {
+      config.members[0].medications.push(name);
+    }
+
+    return name ? { name, dose } : null;
+  }).filter(entry => entry);
 
   // Collect activities
   const activityInputs = document.querySelectorAll(`#activityContainer-${date} .input-group`);
@@ -368,6 +409,32 @@ function collectDataForDate(date, memberName) {
   data.note = noteInput ? noteInput.value.trim() : '';
 
   return data;
+}
+
+function addMedicationEntry(date) {
+  const container = document.querySelector(`#medicationsContainer-${date}`);
+  if (!container) return;
+
+  const div = document.createElement("div");
+  div.className = "input-group";
+  div.innerHTML = `
+    <input list="medicationsList" placeholder="Type medication" onchange="addNewMedication(this.value)" /> 
+    <input type="text" placeholder="Dose" />
+  `;
+  container.appendChild(div);
+}
+
+function addNewMedication(medication) {
+  if (medication && !config.members[0].medications.includes(medication)) {
+    config.members[0].medications.push(medication);
+    saveConfig();
+    updateMedicationsDatalist();
+  }
+}
+
+function updateMedicationsDatalist() {
+  const medicationsList = document.getElementById("medicationsList");
+  medicationsList.innerHTML = config.members[0].medications.map(m => `<option value="${m}">`).join('');
 }
 
 function addNewSweet(sweet) {
