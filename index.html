@@ -14,7 +14,7 @@
 </head>
 <body>
   <header id="app-header">
-    <img src="images/glass-of-water.png" alt="App Logo" id="app-logo" />
+    <img src="images/glass-of-water.png" alt="App Logo" id="app-logo" onclick="initApp()" />
     <div id="user-name">HydrAte!</div>
     <button id="hamburger-menu" onclick="toggleMenu()">
       <span class="hamburger-icon"></span>
@@ -23,9 +23,10 @@
     </button>
     <div id="menu-dropdown" class="hidden">
       <ul>
-        <li onclick="renderSettings()">Settings</li>
-        <li onclick="exportDiary()">Export Diary</li>
-        <li onclick="document.getElementById('importFile').click()">Import Diary</li>
+        <li onclick="renderReports(); hideMenu()">Reports</li>
+        <li onclick="renderSettings(); hideMenu()">Settings</li>
+        <li onclick="exportDiary(); hideMenu()">Export Diary</li>
+        <li onclick="document.getElementById('importFile').click(); hideMenu()">Import Diary</li>
       </ul>
     </div>
     <input type="file" id="importFile" style="display: none;" onchange="importDiary(event)" />

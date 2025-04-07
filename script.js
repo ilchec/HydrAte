@@ -559,6 +559,11 @@ function toggleMenu() {
   menuDropdown.classList.toggle("visible");
 }
 
+function hideMenu() {
+  const menuDropdown = document.getElementById("menu-dropdown");
+  menuDropdown.classList.remove("visible");
+}
+
 function toggleRegularMedication(date, memberName, medicationName, event) {
   if (event) {
     event.stopPropagation();
@@ -635,4 +640,149 @@ function importDiary(event) {
   };
 
   reader.readAsText(file);
+}
+
+//Reporting
+function renderReports() {
+  const content = document.getElementById("content");
+
+  // Get all unique medication names (regular and occasional) from the diary
+  const allMedications = new Set();
+  Object.values(measures).forEach(dayData => {
+    Object.values(dayData).forEach(memberData => {
+      memberData.regularMedications.forEach(med => allMedications.add(med.name));
+      memberData.occasionalMedications.forEach(med => allMedications.add(med.name));
+    });
+  });
+
+  const medicationOptions = Array.from(allMedications)
+    .map(med => `<option value="${med}">${med}</option>`)
+    .join('');
+
+  content.innerHTML = `
+    <h2>Reports</h2>
+    <div class="section">
+      <label for="timeSpan"><strong>Time Span (Last X Days):</strong></label>
+      <input type="number" id="timeSpan" placeholder="Enter number of days" />
+    </div>
+    <div class="section">
+      <label for="reportType"><strong>Data to Report On:</strong></label>
+      <select id="reportType">
+        <option value="allMedications">All Medications</option>
+        <option value="specificMedication">Specific Medication</option>
+        <option value="sweets">Sweets</option>
+        <option value="activities">Activities</option>
+        <option value="averageWater">Average Water Intake</option>
+      </select>
+    </div>
+    <div class="section" id="specificMedicationSection" style="display: none;">
+      <label for="specificMedicationName"><strong>Medication Name:</strong></label>
+      <select id="specificMedicationName">
+        <option value="">Select a medication</option>
+        ${medicationOptions}
+      </select>
+    </div>
+    <button onclick="generateReport()">Generate Report</button>
+    <div id="reportResults" class="section"></div>
+  `;
+
+  // Show/hide the specific medication dropdown based on the selected report type
+  const reportTypeSelect = document.getElementById("reportType");
+  reportTypeSelect.addEventListener("change", () => {
+    const specificMedicationSection = document.getElementById("specificMedicationSection");
+    specificMedicationSection.style.display = reportTypeSelect.value === "specificMedication" ? "block" : "none";
+  });
+}
+
+function generateReport() {
+  const timeSpan = parseInt(document.getElementById("timeSpan").value);
+  const reportType = document.getElementById("reportType").value;
+  const specificMedicationName = document.getElementById("specificMedicationName").value;
+  const reportResults = document.getElementById("reportResults");
+
+  if (isNaN(timeSpan) || timeSpan <= 0) {
+    reportResults.innerHTML = "<p>Please enter a valid number of days.</p>";
+    return;
+  }
+
+  const today = new Date();
+  const startDate = new Date(today);
+  startDate.setDate(today.getDate() - timeSpan);
+
+  const results = [];
+  let totalWater = 0;
+  let daysWithWaterData = 0;
+
+  Object.keys(measures).forEach(date => {
+    const recordDate = new Date(date);
+    if (recordDate >= startDate && recordDate <= today) {
+      const memberData = measures[date][currentMember.name];
+      if (!memberData) return;
+
+      if (reportType === "averageWater") {
+        if (memberData.water !== undefined) {
+          totalWater += memberData.water;
+          daysWithWaterData++;
+        }
+      } else if (reportType === "allMedications") {
+        const regularMeds = memberData.regularMedications.filter(med => med.taken);
+        const occasionalMeds = memberData.occasionalMedications;
+        if (regularMeds.length > 0 || occasionalMeds.length > 0) {
+          results.push({ date, regularMeds, occasionalMeds });
+        }
+      } else if (reportType === "specificMedication" && specificMedicationName) {
+        const regularMed = memberData.regularMedications.find(
+          med => med.name === specificMedicationName && med.taken
+        );
+        const occasionalMed = memberData.occasionalMedications.find(
+          med => med.name === specificMedicationName
+        );
+        if (regularMed || occasionalMed) {
+          results.push({ date, medication: regularMed || occasionalMed });
+        }
+      }
+    }
+  });
+
+  if (reportType === "averageWater") {
+    const averageWater = daysWithWaterData > 0 ? (totalWater / daysWithWaterData).toFixed(2) : 0;
+    reportResults.innerHTML = `
+      <h3>Report Summary:</h3>
+      <p>Average water intake over the last <strong>${timeSpan}</strong> days: <strong>${averageWater}</strong> glasses per day.</p>
+    `;
+  } else if (reportType === "specificMedication" && specificMedicationName) {
+    const daysTaken = results.length;
+    reportResults.innerHTML = `
+      <h3>Report Summary:</h3>
+      <p class="strong-inline">You took <strong>${specificMedicationName}</strong> on <strong>${daysTaken}</strong> out of <strong>${timeSpan}</strong> days.</p>
+      <h3>Details:</h3>
+      <ul>
+        ${results
+          .map(
+            result =>
+              `<li>${result.date}: ${result.medication.dose ? `Dose: ${result.medication.dose}` : "No dose recorded"}</li>`
+          )
+          .join("")}
+      </ul>
+    `;
+  } else if (reportType === "allMedications") {
+    reportResults.innerHTML = `
+      <h3>Report Summary:</h3>
+      <p>Medications taken on the following days:</p>
+      <ul>
+        ${results
+          .map(
+            result =>
+              `<li>${result.date}: Regular: ${result.regularMeds
+                .map(med => `${med.name} (${med.dose || "No dose recorded"})`)
+                .join(", ")}; Occasional: ${result.occasionalMeds
+                .map(med => `${med.name} (${med.dose || "No dose recorded"})`)
+                .join(", ")}</li>`
+          )
+          .join("")}
+      </ul>
+    `;
+  } else {
+    reportResults.innerHTML = "<p>No data found for the selected criteria.</p>";
+  }
 }

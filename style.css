@@ -221,6 +221,10 @@ textarea:focus {
   color: #212529;
 }
 
+.strong-inline > strong {
+  display: inline !important;
+}
+
 /* Glass Styles */
 .glass {
   width: 40px;
