@@ -41,7 +41,26 @@ function renderSettings() {
     sweets: [],
     activity: [],
     exercises: [],
-    medications: { regular: [], occasional: [] }
+    medications: { regular: [], occasional: [] },
+    settings: {
+      trackWeight: true,
+      trackWaterNorm: true,
+      trackSweets: true,
+      trackActivities: true,
+      trackRegularMedications: true,
+      trackOccasionalMedications: true,
+      trackExercises: true
+    }
+  };
+
+  const settings = member.settings || {
+    trackWeight: true,
+    trackWaterNorm: true,
+    trackSweets: true,
+    trackActivities: true,
+    trackRegularMedications: true,
+    trackOccasionalMedications: true,
+    trackExercises: true
   };
 
   content.innerHTML = `
@@ -52,16 +71,25 @@ function renderSettings() {
       <input type="text" id="memberName" value="${member.name}" placeholder="Enter name" />
     </div>
     <div class="section">
-      <label for="memberWeight"><strong>Weight (kg):</strong></label>
-      <input type="number" id="memberWeight" value="${member.weight}" placeholder="Enter weight" />
+      <label class="flex-label">
+        <input type="checkbox" id="trackWeight" ${settings.trackWeight ? "checked" : ""} />
+        <strong>Track Weight</strong>
+      </label>
+      <input type="number" id="memberWeight" value="${member.weight}" placeholder="Enter weight" ${settings.trackWeight ? "" : "style='display: none;'"} />
     </div>
     <div class="section">
-      <label for="waterNorm"><strong>Daily Water Norm (glasses):</strong></label>
-      <input type="number" id="waterNorm" value="${member.waterNorm}" placeholder="Enter water norm" />
+      <label class="flex-label">
+        <input type="checkbox" id="trackWaterNorm" ${settings.trackWaterNorm ? "checked" : ""} />
+        <strong>Track Daily Water Norm</strong>
+      </label>
+      <input type="number" id="waterNorm" value="${member.waterNorm}" placeholder="Enter water norm" ${settings.trackWaterNorm ? "" : "style='display: none;'"} />
     </div>
     <div class="section">
-      <label><strong>Favorite Sweets:</strong></label>
-      <div id="sweetsContainer">
+      <label class="flex-label">
+        <input type="checkbox" id="trackSweets" ${settings.trackSweets ? "checked" : ""} />
+        <strong>Track Sweets</strong>
+      </label>
+      <div id="sweetsContainer" ${settings.trackSweets ? "" : "style='display: none;'"} >
         ${member.sweets
           .map(
             sweet => `
@@ -73,11 +101,14 @@ function renderSettings() {
           )
           .join("")}
       </div>
-      <button onclick="addSweet()">+ Add Sweet</button>
+      <button onclick="addSweets()" ${settings.trackSweets ? "" : "style='display: none;'"}>+ Add Sweet</button>
     </div>
     <div class="section">
-      <label><strong>Favorite Activities:</strong></label>
-      <div id="activitiesContainer">
+      <label class="flex-label">
+        <input type="checkbox" id="trackActivities" ${settings.trackActivities ? "checked" : ""} />
+        <strong>Track Activities</strong>
+      </label>
+      <div id="activitiesContainer" ${settings.trackActivities ? "" : "style='display: none;'"} >
         ${member.activity
           .map(
             activity => `
@@ -89,28 +120,34 @@ function renderSettings() {
           )
           .join("")}
       </div>
-      <button onclick="addActivity()">+ Add Activity</button>
+      <button onclick="addActivities()" ${settings.trackActivities ? "" : "style='display: none;'"}>+ Add Activity</button>
     </div>
     <div class="section">
-      <label><strong>Regular Medications:</strong></label>
-      <div id="regularMedicationsContainer">
+      <label class="flex-label">
+        <input type="checkbox" id="trackRegularMedications" ${settings.trackRegularMedications ? "checked" : ""} />
+        <strong>Track Regular Medications</strong>
+      </label>
+      <div id="regularMedicationsContainer" ${settings.trackRegularMedications ? "" : "style='display: none;'"} >
         ${member.medications.regular
           .map(
             med => `
           <div class="input-group">
-            <input type="text" value="${med.name}" placeholder="Medication Name" />
-            <input type="text" value="${med.dose}" placeholder="Dose" />
+            <input type="text" value="${med.name}" placeholder="Medication Name" required />
+            <input type="text" value="${med.dose}" placeholder="Dose" required />
             <button onclick="removeParent(this)">Remove</button>
           </div>
         `
           )
           .join("")}
       </div>
-      <button onclick="addRegularMedication()">+ Add Medication</button>
+      <button onclick="addRegularMedications()" ${settings.trackRegularMedications ? "" : "style='display: none;'"}>+ Add Medication</button>
     </div>
     <div class="section">
-      <label><strong>Occasional Medications:</strong></label>
-      <div id="occasionalMedicationsContainer">
+      <label class="flex-label">
+        <input type="checkbox" id="trackOccasionalMedications" ${settings.trackOccasionalMedications ? "checked" : ""} />
+        <strong>Track Occasional Medications</strong>
+      </label>
+      <div id="occasionalMedicationsContainer" ${settings.trackOccasionalMedications ? "" : "style='display: none;'"} >
         ${member.medications.occasional
           .map(
             med => `
@@ -122,22 +159,25 @@ function renderSettings() {
           )
           .join("")}
       </div>
-      <button onclick="addOccasionalMedication()">+ Add Medication</button>
+      <button onclick="addOccasionalMedications()" ${settings.trackOccasionalMedications ? "" : "style='display: none;'"}>+ Add Medication</button>
     </div>
     <div class="section">
-      <label><strong>Exercises:</strong></label>
-      <div id="exercisesContainer">
+      <label class="flex-label">
+        <input type="checkbox" id="trackExercises" ${settings.trackExercises ? "checked" : ""} />
+        <strong>Track Exercises</strong>
+      </label>
+      <div id="exercisesContainer" ${settings.trackExercises ? "" : "style='display: none;'"} >
         ${member.exercises
           .map(
             exercise => `
           <div class="exercise-entry">
-            <input type="text" value="${exercise.name}" placeholder="Exercise Name" />
+            <input type="text" value="${exercise.name}" placeholder="Exercise Name" required />
             <div class="sets-container">
               ${exercise.reps
                 .map(
                   rep => `
                 <div class="input-group">
-                  <input type="number" value="${rep}" placeholder="Reps" />
+                  <input type="number" value="${rep}" placeholder="Reps" required />
                   <button onclick="removeParent(this)">Remove</button>
                 </div>
               `
@@ -151,58 +191,93 @@ function renderSettings() {
           )
           .join("")}
       </div>
-      <button onclick="addExercise()">+ Add Exercise</button>
+      <button onclick="addExercises()" ${settings.trackExercises ? "" : "style='display: none;'"}>+ Add Exercise</button>
     </div>
     <button onclick="saveSettings()">Save</button>
   `;
+
+  // Add event listeners for checkboxes to toggle visibility
+  document.getElementById("trackWeight").addEventListener("change", toggleSectionVisibility);
+  document.getElementById("trackWaterNorm").addEventListener("change", toggleSectionVisibility);
+  document.getElementById("trackSweets").addEventListener("change", toggleSectionVisibility);
+  document.getElementById("trackActivities").addEventListener("change", toggleSectionVisibility);
+  document.getElementById("trackRegularMedications").addEventListener("change", toggleSectionVisibility);
+  document.getElementById("trackOccasionalMedications").addEventListener("change", toggleSectionVisibility);
+  document.getElementById("trackExercises").addEventListener("change", toggleSectionVisibility);
 }
 
 function saveSettings() {
   const name = document.getElementById("memberName").value.trim();
-  const weight = parseFloat(document.getElementById("memberWeight").value);
-  const waterNorm = parseInt(document.getElementById("waterNorm").value);
+  const weight = document.getElementById("trackWeight").checked
+    ? parseFloat(document.getElementById("memberWeight").value)
+    : null;
+  const waterNorm = document.getElementById("trackWaterNorm").checked
+    ? parseInt(document.getElementById("waterNorm").value)
+    : null;
 
-  const sweets = Array.from(document.querySelectorAll("#sweetsContainer input"))
-    .map(input => input.value.trim())
-    .filter(value => value);
+  const sweets = document.getElementById("trackSweets").checked
+    ? Array.from(document.querySelectorAll("#sweetsContainer input"))
+        .map(input => input.value.trim())
+        .filter(value => value)
+    : [];
 
-  const activities = Array.from(document.querySelectorAll("#activitiesContainer input"))
-    .map(input => input.value.trim())
-    .filter(value => value);
+  const activities = document.getElementById("trackActivities").checked
+    ? Array.from(document.querySelectorAll("#activitiesContainer input"))
+        .map(input => input.value.trim())
+        .filter(value => value)
+    : [];
 
-  const regularMedications = Array.from(document.querySelectorAll("#regularMedicationsContainer .input-group"))
-    .map(group => {
-      const name = group.querySelector("input:nth-of-type(1)").value.trim();
-      const dose = group.querySelector("input:nth-of-type(2)").value.trim();
-      return name ? { name, dose } : null;
-    })
-    .filter(entry => entry);
+  const regularMedications = document.getElementById("trackRegularMedications").checked
+    ? Array.from(document.querySelectorAll("#regularMedicationsContainer .input-group"))
+        .map(group => {
+          const name = group.querySelector("input:nth-of-type(1)").value.trim();
+          const dose = group.querySelector("input:nth-of-type(2)").value.trim();
+          return name ? { name, dose } : null;
+        })
+        .filter(entry => entry)
+    : [];
 
-  const occasionalMedications = Array.from(document.querySelectorAll("#occasionalMedicationsContainer input"))
-    .map(input => input.value.trim())
-    .filter(value => value);
+  const occasionalMedications = document.getElementById("trackOccasionalMedications").checked
+    ? Array.from(document.querySelectorAll("#occasionalMedicationsContainer .input-group"))
+        .map(group => {
+          const name = group.querySelector("input:nth-of-type(1)").value.trim();
+          return name ? name : null;
+        })
+        .filter(entry => entry)
+    : [];
 
-  const exercises = Array.from(document.querySelectorAll("#exercisesContainer .exercise-entry"))
-    .map(entry => {
-      const name = entry.querySelector("input[type='text']").value.trim();
-      const reps = Array.from(entry.querySelectorAll(".sets-container input"))
-        .map(input => parseInt(input.value))
-        .filter(value => !isNaN(value));
-      return name ? { name, reps } : null;
-    })
-    .filter(entry => entry);
+  const exercises = document.getElementById("trackExercises").checked
+    ? Array.from(document.querySelectorAll("#exercisesContainer .exercise-entry"))
+        .map(entry => {
+          const name = entry.querySelector("input[type='text']").value.trim();
+          const reps = Array.from(entry.querySelectorAll(".sets-container input"))
+            .map(input => parseInt(input.value))
+            .filter(value => !isNaN(value));
+          return name ? { name, reps } : null;
+        })
+        .filter(entry => entry)
+    : [];
 
   config.members = [
     {
       name,
-      weight: isNaN(weight) ? null : weight,
-      waterNorm: isNaN(waterNorm) ? null : waterNorm,
+      weight,
+      waterNorm,
       sweets,
       activity: activities,
       exercises,
       medications: {
         regular: regularMedications,
-        occasional: occasionalMedications
+        occasional: occasionalMedications // Save occasional medications here
+      },
+      settings: {
+        trackWeight: document.getElementById("trackWeight").checked,
+        trackWaterNorm: document.getElementById("trackWaterNorm").checked,
+        trackSweets: document.getElementById("trackSweets").checked,
+        trackActivities: document.getElementById("trackActivities").checked,
+        trackRegularMedications: document.getElementById("trackRegularMedications").checked,
+        trackOccasionalMedications: document.getElementById("trackOccasionalMedications").checked,
+        trackExercises: document.getElementById("trackExercises").checked
       }
     }
   ];
@@ -282,11 +357,17 @@ function renderDiary(member) {
     // Ensure the first accordion (newest date) is open by default
     const open = idx === 0 || openAccordions.includes(date) ? 'open' : '';
     const data = measures[date]?.[member.name] || {};
+    const settings = member.settings || {};
 
     html += `
     <div class="accordion ${open}" data-date="${date}">
       <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">${date}</div>
       <div class="accordion-content">
+        ${settings.trackWeight ? `
+        <div class="section">
+          <strong>Weight:</strong> <input type="number" class="input-45" value="${data.weight || member.weight}" onchange="saveWeight(this.value, '${date}', '${member.name}')" data-date="${date}" /> kg
+        </div>` : ''}
+        ${settings.trackWaterNorm ? `
         <div class="section">
           <strong>Water:</strong>
           ${Array.from({ length: member.waterNorm }, (_, i) => `
@@ -297,7 +378,8 @@ function renderDiary(member) {
               alt="Glass of Water"
             />
           `).join('')}
-        </div>
+        </div>` : ''}
+        ${settings.trackSweets ? `
         <div class="section">
           <strong>Sweets:</strong>
           <div id="sweetsContainer-${date}">
@@ -311,7 +393,8 @@ function renderDiary(member) {
           <datalist id="sweetsList">
             ${member.sweets.map(s => `<option value="${s}">`).join('')}
           </datalist>
-        </div>
+        </div>` : ''}
+        ${settings.trackActivities ? `
         <div class="section">
           <strong>Activity:</strong>
           <div id="activityContainer-${date}">
@@ -325,7 +408,8 @@ function renderDiary(member) {
           <datalist id="activityList">
             ${member.activity.map(a => `<option value="${a}">`).join('')}
           </datalist>
-        </div>
+        </div>` : ''}
+        ${settings.trackRegularMedications ? `
         <div class="section">
           <strong>Regular Medications:</strong>
           <div id="regularMedicationsContainer-${date}">
@@ -341,21 +425,21 @@ function renderDiary(member) {
               </div>
             `).join('')}
           </div>
-        </div>
+        </div>` : ''}
+        ${settings.trackOccasionalMedications ? `
         <div class="section">
           <strong>Occasional Medications:</strong>
           <div id="occasionalMedicationsContainer-${date}">
-            ${(data.occasionalMedications || []).map(entry => `
+            ${(data.occasionalMedications || []).map(med => `
               <div class="input-group">
-                <input list="occasionalMedicationsList" value="${entry.name || ''}" placeholder="Type medication" onchange="addNewMedication(this.value)" /> 
-                <input type="text" value="${entry.dose || ''}" placeholder="Dose" />
-              </div>`).join('')}
+                <input type="text" value="${med.name}" placeholder="Medication Name" />
+                <input type="text" value="${med.dose}" placeholder="Dose" />
+              </div>
+            `).join('')}
           </div>
           <button onclick="addMedicationEntry('${date}')">+ Add More</button>
-          <datalist id="occasionalMedicationsList">
-            ${(member.medications?.occasional || []).map(m => `<option value="${m}">`).join('')}
-          </datalist>
-        </div>
+        </div>` : ''}
+        ${settings.trackExercises ? `
         <div class="section">
           <strong>Exercises:</strong>
           ${member.exercises.map(ex => {
@@ -372,10 +456,7 @@ function renderDiary(member) {
               </div>
             `;
           }).join('')}
-        </div>
-        <div class="section">
-          <strong>Weight:</strong> <input type="number" value="${data.weight || member.weight}" onchange="saveWeight(this.value, '${date}', '${member.name}')" data-date="${date}" /> kg
-        </div>
+        </div>` : ''}
         <div class="section">
           <strong>Note:</strong>
           <textarea id="note-${date}" placeholder="Add a note for this day...">${data.note || ''}</textarea>
@@ -888,7 +969,7 @@ function addRetrospectiveData() {
 }
 
 //User-friendly setup
-function addSweet() {
+function addSweets() {
   const container = document.getElementById("sweetsContainer");
   const div = document.createElement("div");
   div.className = "input-group";
@@ -899,8 +980,9 @@ function addSweet() {
   container.appendChild(div);
 }
 
-function addActivity() {
+function addActivities() {
   const container = document.getElementById("activitiesContainer");
+  container.style.display = "block";
   const div = document.createElement("div");
   div.className = "input-group";
   div.innerHTML = `
@@ -910,8 +992,9 @@ function addActivity() {
   container.appendChild(div);
 }
 
-function addRegularMedication() {
+function addRegularMedications() {
   const container = document.getElementById("regularMedicationsContainer");
+  container.style.display = "block";
   const div = document.createElement("div");
   div.className = "input-group";
   div.innerHTML = `
@@ -922,8 +1005,9 @@ function addRegularMedication() {
   container.appendChild(div);
 }
 
-function addOccasionalMedication() {
+function addOccasionalMedications() {
   const container = document.getElementById("occasionalMedicationsContainer");
+  container.style.display = "block";
   const div = document.createElement("div");
   div.className = "input-group";
   div.innerHTML = `
@@ -933,8 +1017,9 @@ function addOccasionalMedication() {
   container.appendChild(div);
 }
 
-function addExercise() {
+function addExercises() {
   const container = document.getElementById("exercisesContainer");
+  container.style.display = "block";
   const div = document.createElement("div");
   div.className = "exercise-entry";
   div.innerHTML = `
@@ -959,4 +1044,38 @@ function addSet(button) {
 
 function removeParent(button) {
   button.parentElement.remove();
+}
+
+function toggleSectionVisibility(event) {
+  const checkbox = event.target;
+  const sectionId = checkbox.id.replace("track", "");
+  const container = document.getElementById(`${sectionId}Container`);
+  const addButton = document.querySelector(`button[onclick^="add${sectionId.charAt(0).toUpperCase() + sectionId.slice(1)}"]`);
+  console.log(`add${sectionId.charAt(0).toUpperCase() + sectionId.slice(1)}`);
+  const input = document.getElementById(`member${sectionId.charAt(0).toUpperCase() + sectionId.slice(1)}`);
+
+  // Debugging: Log the elements being toggled
+  console.log(`Toggling visibility for section: ${sectionId}`);
+  console.log({ container, addButton, input });
+
+  // Special handling for waterNorm since it doesn't follow the same naming convention
+  if (sectionId === "waternorm") {
+    const waterNormInput = document.getElementById("waterNorm");
+    if (checkbox.checked) {
+      waterNormInput.style.display = "";
+    } else {
+      waterNormInput.style.display = "none";
+    }
+    return;
+  }
+
+  if (checkbox.checked) {
+    if (container) container.style.display = "";
+    if (addButton) addButton.style.display = "inline-block"; // Ensure the "Add ..." button is shown
+    if (input) input.style.display = "";
+  } else {
+    if (container) container.style.display = "none";
+    if (addButton) addButton.style.display = "none"; // Ensure the "Add ..." button is hidden
+    if (input) input.style.display = "none";
+  }
 }

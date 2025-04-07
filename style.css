@@ -263,6 +263,19 @@ textarea:focus {
   text-align: center;
 }
 
+.flex-label {
+  display: flex;
+}
+
+.flex-label input {
+  width: inherit;
+  margin-right: 0.5rem;;
+}
+
+.input-45 {
+  width: 45%;
+}
+
 /* Responsive Styles for Mobile Screens */
 @media (max-width: 600px) {
   #menu-dropdown {
