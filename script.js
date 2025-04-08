@@ -364,8 +364,8 @@ function renderDiary(member) {
     .filter((date) => measures[date][member.name])
     .sort((a, b) => new Date(b) - new Date(a));
 
-  allDates.forEach((date, idx) => {
-    const open = idx === 0 ? "open" : "";
+  allDates.forEach((date) => {
+    const open = openAccordions[date] ? "open" : "";
     const data = measures[date]?.[member.name] || {};
     html += renderDiaryEntry(date, data, member, open);
   });
@@ -376,7 +376,7 @@ function renderDiary(member) {
 function renderDiaryEntry(date, data, member, open) {
   return `
     <div class="accordion ${open}" data-date="${date}">
-      <div class="accordion-header" onclick="if (event.target.classList.contains('accordion-header')) this.parentElement.classList.toggle('open')">${date}</div>
+      <div class="accordion-header" data-accordion-header onclick="toggleAccordion(event)">${date}</div>
       <div class="accordion-content">
         ${renderDiaryWeight(data, member, date)}
         ${renderDiaryWater(data, member, date)}
@@ -482,19 +482,14 @@ function renderDiaryWater(data, member, date) {
 function renderDiarySweets(data, member, date) {
   if (!member.settings.trackSweets) return "";
   return `
-    <div class="section">
-      <strong>Sweets:</strong>
-      <div id="sweetsContainer-${date}">
-        ${(data.sweets || []).map((sweet, i) => `
-          <div class="input-group">
-            <input type="text" value="${sweet.name || ""}" placeholder="Sweet Name" onchange="updateSweet('${date}', '${member.name}', ${i}, this.value)" />
-            <input type="number" class="input-45" value="${sweet.amount || ""}" placeholder="Amount" onchange="updateSweetAmount('${date}', '${member.name}', ${i}, this.value)" />
-            <button class="remove-button" onclick="removeSweet('${date}', '${member.name}', ${i})">X</button>
-          </div>
-        `).join("")}
+    ${(data.sweets || []).map((sweet, i) => `
+      <div class="input-group">
+        <input type="text" value="${sweet.name || ""}" placeholder="Sweet Name" onchange="updateSweet('${date}', '${member.name}', ${i}, this.value)" />
+        <input type="number" class="input-45" value="${sweet.amount || ""}" placeholder="Amount" onchange="updateSweetAmount('${date}', '${member.name}', ${i}, this.value)" />
+        <button class="remove-button" onclick="removeSweet('${date}', '${member.name}', ${i})">X</button>
       </div>
-      <button onclick="addSweet('${date}', '${member.name}')">+ Add Sweet</button>
-    </div>
+    `).join("")}
+    <button onclick="addSweet('${date}', '${member.name}', event)">+ Add Sweet</button>
   `;
 }
 
@@ -546,6 +541,18 @@ function toggleSectionVisibility(event) {
   }
 }
 
+document.getElementById("content").addEventListener("click", (event) => {
+  const header = event.target.closest(".accordion-header");
+  if (header && header.parentElement.classList.contains("accordion")) {
+    const accordion = header.parentElement;
+    const date = accordion.getAttribute("data-date");
+
+    // Toggle the open state
+    accordion.classList.toggle("open");
+    openAccordions[date] = accordion.classList.contains("open");
+  }
+});
+
 function removeParent(button) {
   const parent = button.parentElement;
   parent.remove();
@@ -566,24 +573,43 @@ function saveWeight(newWeight, date, memberName) {
   saveMeasures();
 }
 
-function addSweet(date, memberName) {
+function addSweet(date, memberName, event) {
+  if (event) {
+    event.stopPropagation(); // Prevent the event from propagating to the accordion
+  }
+
+  // Add a new sweet to the measures object
   measures[date][memberName].sweets = measures[date][memberName].sweets || [];
   measures[date][memberName].sweets.push({ name: "", amount: "" });
   saveMeasures();
-  renderDiary(currentMember);
+
+  // Re-render only the sweets section
+  const sweetsContainer = document.getElementById(`sweetsContainer-${date}`);
+  if (sweetsContainer) {
+    sweetsContainer.innerHTML = renderDiarySweets(measures[date][memberName], currentMember, date);
+  }
 }
 
-function updateSweet(date, memberName, index, value) {
+function updateSweet(date, memberName, index, value, event) {
+  if (event) {
+    event.stopPropagation(); // Prevent the event from propagating to the accordion
+  }
   measures[date][memberName].sweets[index].name = value;
   saveMeasures();
 }
 
-function updateSweetAmount(date, memberName, index, value) {
+function updateSweetAmount(date, memberName, index, value, event) {
+  if (event) {
+    event.stopPropagation(); // Prevent the event from propagating to the accordion
+  }
   measures[date][memberName].sweets[index].amount = parseInt(value) || 0;
   saveMeasures();
 }
 
-function removeSweet(date, memberName, index) {
+function removeSweet(date, memberName, index, event) {
+  if (event) {
+    event.stopPropagation(); // Prevent the event from propagating to the accordion
+  }
   measures[date][memberName].sweets.splice(index, 1);
   saveMeasures();
   renderDiary(currentMember);
@@ -594,23 +620,39 @@ function addActivity(date, memberName, event) {
     event.stopPropagation(); // Prevent the event from propagating to the accordion
   }
 
+  // Add a new activity to the measures object
   measures[date][memberName].activity = measures[date][memberName].activity || [];
   measures[date][memberName].activity.push({ name: "", details: "" });
   saveMeasures();
-  renderDiary(currentMember);
+
+  // Re-render only the activities section
+  const activitiesContainer = document.getElementById(`activitiesContainer-${date}`);
+  if (activitiesContainer) {
+    activitiesContainer.innerHTML = '';
+    activitiesContainer.innerHTML = renderDiaryActivities(measures[date][memberName], currentMember, date);
+  }
 }
 
-function updateActivity(date, memberName, index, value) {
+function updateActivity(date, memberName, index, value, event) {
+  if (event) {
+    event.stopPropagation(); // Prevent the event from propagating to the accordion
+  }
   measures[date][memberName].activity[index].name = value;
   saveMeasures();
 }
 
-function updateActivityDetails(date, memberName, index, value) {
+function updateActivityDetails(date, memberName, index, value, event) {
+  if (event) {
+    event.stopPropagation(); // Prevent the event from propagating to the accordion
+  }
   measures[date][memberName].activity[index].details = value;
   saveMeasures();
 }
 
-function removeActivity(date, memberName, index) {
+function removeActivity(date, memberName, index, event) {
+  if (event) {
+    event.stopPropagation(); // Prevent the event from propagating to the accordion
+  }
   measures[date][memberName].activity.splice(index, 1);
   saveMeasures();
   renderDiary(currentMember);
@@ -838,5 +880,28 @@ function addRetrospectiveData() {
   renderDiary(currentMember);
 }
 
+function toggleAccordion(event) {
+  const header = event.target.closest(".accordion-header");
+  if (header && header.parentElement.classList.contains("accordion")) {
+    const accordion = header.parentElement;
+    const date = accordion.getAttribute("data-date");
+
+    // Toggle the open state
+    accordion.classList.toggle("open");
+    openAccordions[date] = accordion.classList.contains("open");
+  }
+}
+
 // --- Initialization ---
+let openAccordions = {};
 loadConfig();
+document.getElementById("content").addEventListener("click", (event) => {
+  if (event.target.classList.contains("accordion-header")) {
+    const accordion = event.target.parentElement;
+    const date = accordion.getAttribute("data-date");
+
+    // Toggle the open state
+    accordion.classList.toggle("open");
+    openAccordions[date] = accordion.classList.contains("open");
+  }
+});
