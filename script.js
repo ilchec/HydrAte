@@ -1090,6 +1090,56 @@ function generateReport() {
   }
 }
 
+//Import / Export
+function exportDiary() {
+  const data = {
+    config: JSON.parse(localStorage.getItem('config') || '{}'),
+    measures: JSON.parse(localStorage.getItem('measures') || '{}')
+  };
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'my-diary.json';
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+function importDiary(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      // Validate the structure of the imported data
+      if (!data.config || !Array.isArray(data.config.members)) {
+        throw new Error('Invalid config format.');
+      }
+      if (!data.measures || typeof data.measures !== 'object') {
+        throw new Error('Invalid measures format.');
+      }
+
+      // Save the imported data to localStorage
+      localStorage.setItem('config', JSON.stringify(data.config));
+      localStorage.setItem('measures', JSON.stringify(data.measures));
+
+      // Reload the app with the imported data
+      alert('Diary imported successfully!');
+      loadConfig();
+    } catch (error) {
+      alert(`Failed to import diary: ${error.message}`);
+    }
+  };
+
+  reader.readAsText(file);
+}
+
 
 // --- Initialization ---
 let openAccordions = {};
