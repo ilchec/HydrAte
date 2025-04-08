@@ -30,10 +30,7 @@ button {
   transition: background-color 0.3s;
 }
 
-.button-100 {
-  width: 100% !important;
-  margin: 0.5rem 0 !important;
-}
+
 
 button:hover {
   background-color: #218838;
@@ -71,6 +68,10 @@ button[onclick^="save"]:hover {
 }
 
 /* Fixed Save Button */
+#content {
+  margin-bottom: 4rem; /* Add space for the Save button */
+}
+
 #saveButton {
   position: fixed;
   bottom: 0;
@@ -83,8 +84,6 @@ button[onclick^="save"]:hover {
   font-size: 1.2rem;
   font-weight: bold;
   cursor: pointer;
-  transition: transform 0.3s ease-in-out;
-  transform: translateY(100%); /* Initially hidden */
   z-index: 1000;
 }
 
