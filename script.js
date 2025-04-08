@@ -352,8 +352,8 @@ function initApp() {
   config.members[0].medications = config.members[0].medications || { regular: [], occasional: [] };
 
   // Set the user's name in the header
-  const userNameEl = document.getElementById("user-name");
-  userNameEl.textContent = config.members[0].name;
+  //const userNameEl = document.getElementById("user-name");
+  //userNameEl.textContent = config.members[0].name;
 
   // Ensure today's record exists in measures
   const today = new Date().toISOString().split('T')[0];

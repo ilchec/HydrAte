@@ -1,9 +1,25 @@
 /* General Styles */
+:root {
+  --logo-color: black;
+}
+
 body {
   font-family: 'Roboto', sans-serif;
   padding: 0;
   margin: 0;
 }
+
+.logo-400 {
+  font-family: "Shadows Into Light", cursive;
+  font-weight: 400;
+  font-style: normal;
+  font-optical-sizing: auto;
+  font-variation-settings:
+    "wdth" 100;
+  font-size: 1.5rem;;
+  color: var(--logo-color);
+}
+
 button {
   padding: 0.4rem 1rem;
   background-color: #28a745;
@@ -141,7 +157,7 @@ button.remove-button:hover {
   justify-content: space-between;
   padding: 0.5rem 1rem;
   margin-bottom: 1em;
-  background-color: #007bff;
+  background-color: #c7ffd8;
   color: white;
   position: sticky;
   top: 0;
@@ -176,7 +192,7 @@ button.remove-button:hover {
 .hamburger-icon {
   width: 25px;
   height: 3px;
-  background-color: white;
+  background-color: var(--logo-color);
   border-radius: 2px;
 }
 
