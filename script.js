@@ -83,14 +83,16 @@ function createDefaultDailyRecord() {
     water: 0,
     sweets: [],
     regularMedications: currentMember.medications.regular.map((med) => ({
-      name: med.name,
-      dose: med.dose,
+      name: med.name || "",
+      dose: med.dose || "",
       taken: false,
     })),
-    occasionalMedications: currentMember.medications.occasional.map((med) => ({
-      name: med.name,
-      dose: med.dose,
-    })), // Initialize occasional medications
+    occasionalMedications: currentMember.medications.occasional
+      .filter((med) => med.name && med.dose) // Filter out invalid entries
+      .map((med) => ({
+        name: med.name,
+        dose: med.dose,
+      })),
     activity: [],
     exercises: currentMember.exercises.map((ex) => ({
       name: ex.name,
@@ -482,14 +484,19 @@ function renderDiaryWater(data, member, date) {
 function renderDiarySweets(data, member, date) {
   if (!member.settings.trackSweets) return "";
   return `
-    ${(data.sweets || []).map((sweet, i) => `
-      <div class="input-group">
-        <input type="text" value="${sweet.name || ""}" placeholder="Sweet Name" onchange="updateSweet('${date}', '${member.name}', ${i}, this.value)" />
-        <input type="number" class="input-45" value="${sweet.amount || ""}" placeholder="Amount" onchange="updateSweetAmount('${date}', '${member.name}', ${i}, this.value)" />
-        <button class="remove-button" onclick="removeSweet('${date}', '${member.name}', ${i})">X</button>
+    <div class="section">
+      <strong>Sweets:</strong>
+      <div id="sweetsContainer-${date}">
+        ${(data.sweets || []).map((sweet, i) => `
+          <div class="input-group">
+            <input type="text" value="${sweet.name || ""}" placeholder="Sweet Name" onchange="updateSweet('${date}', '${member.name}', ${i}, this.value)" />
+            <input type="number" class="input-45" value="${sweet.amount || ""}" placeholder="Amount" onchange="updateSweetAmount('${date}', '${member.name}', ${i}, this.value)" />
+            <button class="remove-button" onclick="removeSweet('${date}', '${member.name}', ${i})">X</button>
+          </div>
+        `).join("")}
       </div>
-    `).join("")}
-    <button onclick="addSweet('${date}', '${member.name}', event)">+ Add Sweet</button>
+      <button onclick="addSweet('${date}', '${member.name}', event)">+ Add Sweet</button>
+    </div>
   `;
 }
 
@@ -578,15 +585,26 @@ function addSweet(date, memberName, event) {
     event.stopPropagation(); // Prevent the event from propagating to the accordion
   }
 
-  // Add a new sweet to the measures object
+  // Ensure the sweets array exists
   measures[date][memberName].sweets = measures[date][memberName].sweets || [];
+  
+  // Add a new sweet
   measures[date][memberName].sweets.push({ name: "", amount: "" });
   saveMeasures();
 
-  // Re-render only the sweets section
+  // Append the new sweet
   const sweetsContainer = document.getElementById(`sweetsContainer-${date}`);
   if (sweetsContainer) {
-    sweetsContainer.innerHTML = renderDiarySweets(measures[date][memberName], currentMember, date);
+    const newSweet = document.createElement("div");
+    newSweet.className = "input-group";
+    newSweet.innerHTML = `
+      <input type="text" placeholder="Sweet Name" onchange="updateSweet('${date}', '${memberName}', ${measures[date][memberName].sweets.length - 1}, this.value)" />
+      <input type="number" class="input-45" placeholder="Amount" onchange="updateSweetAmount('${date}', '${memberName}', ${measures[date][memberName].sweets.length - 1}, this.value)" />
+      <button class="remove-button" onclick="removeSweet('${date}', '${memberName}', ${measures[date][memberName].sweets.length - 1})">X</button>
+    `;
+    sweetsContainer.insertBefore(newSweet, sweetsContainer.lastElementChild); // Insert before the "Add Sweet" button
+  } else {
+    console.error(`Sweets container for date ${date} not found.`);
   }
 }
 
@@ -620,16 +638,26 @@ function addActivity(date, memberName, event) {
     event.stopPropagation(); // Prevent the event from propagating to the accordion
   }
 
-  // Add a new activity to the measures object
+  // Ensure the activities array exists
   measures[date][memberName].activity = measures[date][memberName].activity || [];
+  
+  // Add a new activity
   measures[date][memberName].activity.push({ name: "", details: "" });
   saveMeasures();
 
-  // Re-render only the activities section
+  // Append the new activity
   const activitiesContainer = document.getElementById(`activitiesContainer-${date}`);
   if (activitiesContainer) {
-    activitiesContainer.innerHTML = '';
-    activitiesContainer.innerHTML = renderDiaryActivities(measures[date][memberName], currentMember, date);
+    const newActivity = document.createElement("div");
+    newActivity.className = "input-group";
+    newActivity.innerHTML = `
+      <input type="text" placeholder="Activity Name" onchange="updateActivity('${date}', '${memberName}', ${measures[date][memberName].activity.length - 1}, this.value)" />
+      <input type="text" class="input-45" placeholder="Details" onchange="updateActivityDetails('${date}', '${memberName}', ${measures[date][memberName].activity.length - 1}, this.value)" />
+      <button class="remove-button" onclick="removeActivity('${date}', '${memberName}', ${measures[date][memberName].activity.length - 1})">X</button>
+    `;
+    activitiesContainer.insertBefore(newActivity, activitiesContainer.lastElementChild); // Insert before the "Add Activity" button
+  } else {
+    console.error(`Activities container for date ${date} not found.`);
   }
 }
 
