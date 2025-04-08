@@ -422,12 +422,15 @@ function renderDiaryOccasionalMedications(data, member, date) {
       <div id="occasionalMedicationsContainer-${date}">
         ${(data.occasionalMedications || []).map((med, i) => `
           <div class="input-group">
-            <input type="text" value="${med.name}" placeholder="Medication Name" onchange="updateOccasionalMedication('${date}', '${member.name}', ${i}, 'name', this.value)" />
+            <input type="text" value="${med.name}" placeholder="Medication Name" list="occasionalMedicationsList-${date}" onchange="updateOccasionalMedication('${date}', '${member.name}', ${i}, 'name', this.value)" />
             <input type="text" class="input-45" value="${med.dose}" placeholder="Dose" onchange="updateOccasionalMedication('${date}', '${member.name}', ${i}, 'dose', this.value)" />
             <button class="remove-button" onclick="removeOccasionalMedication('${date}', '${member.name}', ${i})">X</button>
           </div>
         `).join("")}
       </div>
+      <datalist id="occasionalMedicationsList-${date}">
+        ${config.members[0].medications.occasional.map((med) => `<option value="${med}">`).join("")}
+      </datalist>
       <button onclick="addMedicationEntry('${date}', event)">+ Add More</button>
     </div>
   `;
@@ -489,12 +492,15 @@ function renderDiarySweets(data, member, date) {
       <div id="sweetsContainer-${date}">
         ${(data.sweets || []).map((sweet, i) => `
           <div class="input-group">
-            <input type="text" value="${sweet.name || ""}" placeholder="Sweet Name" onchange="updateSweet('${date}', '${member.name}', ${i}, this.value)" />
+            <input type="text" value="${sweet.name || ""}" placeholder="Sweet Name" list="sweetsList-${date}" onchange="updateSweet('${date}', '${member.name}', ${i}, this.value)" />
             <input type="number" class="input-45" value="${sweet.amount || ""}" placeholder="Amount" onchange="updateSweetAmount('${date}', '${member.name}', ${i}, this.value)" />
             <button class="remove-button" onclick="removeSweet('${date}', '${member.name}', ${i})">X</button>
           </div>
         `).join("")}
       </div>
+      <datalist id="sweetsList-${date}">
+        ${config.members[0].sweets.map((s) => `<option value="${s}">`).join("")}
+      </datalist>
       <button onclick="addSweet('${date}', '${member.name}', event)">+ Add Sweet</button>
     </div>
   `;
@@ -508,12 +514,15 @@ function renderDiaryActivities(data, member, date) {
       <div id="activitiesContainer-${date}">
         ${(data.activity || []).map((activity, i) => `
           <div class="input-group">
-            <input type="text" value="${activity.name || ""}" placeholder="Activity Name" onchange="updateActivity('${date}', '${member.name}', ${i}, this.value)" />
+            <input type="text" value="${activity.name || ""}" placeholder="Activity Name" list="activitiesList-${date}" onchange="updateActivity('${date}', '${member.name}', ${i}, this.value)" />
             <input type="text" class="input-45" value="${activity.details || ""}" placeholder="Details" onchange="updateActivityDetails('${date}', '${member.name}', ${i}, this.value)" />
             <button class="remove-button" onclick="removeActivity('${date}', '${member.name}', ${i})">X</button>
           </div>
         `).join("")}
       </div>
+      <datalist id="activitiesList-${date}">
+        ${config.members[0].activity.map((a) => `<option value="${a.name}">`).join("")}
+      </datalist>
       <button onclick="addActivity('${date}', '${member.name}', event)">+ Add Activity</button>
     </div>
   `;
@@ -613,6 +622,11 @@ function updateSweet(date, memberName, index, value, event) {
     event.stopPropagation(); // Prevent the event from propagating to the accordion
   }
   measures[date][memberName].sweets[index].name = value;
+  // Add the new sweet to the config if it doesn't already exist
+  if (!config.members[0].sweets.includes(value)) {
+    config.members[0].sweets.push(value);
+    saveConfig();
+  }
   saveMeasures();
 }
 
@@ -666,6 +680,11 @@ function updateActivity(date, memberName, index, value, event) {
     event.stopPropagation(); // Prevent the event from propagating to the accordion
   }
   measures[date][memberName].activity[index].name = value;
+  // Add the new activity to the config if it doesn't already exist
+  if (!config.members[0].activity.some((activity) => activity.name === value)) {
+    config.members[0].activity.push({ name: value, details: "" });
+    saveConfig();
+  }
   saveMeasures();
 }
 
@@ -769,6 +788,11 @@ function updateOccasionalMedication(date, memberName, index, field, value) {
   }
 
   measures[date][memberName].occasionalMedications[index][field] = value; // Update the field (name or dose)
+  // Add the new medication to the config if it doesn't already exist
+  if (field === "name" && !config.members[0].medications.occasional.includes(value)) {
+    config.members[0].medications.occasional.push(value);
+    saveConfig();
+  }
   saveMeasures();
 }
 
