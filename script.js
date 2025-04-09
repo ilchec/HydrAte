@@ -1320,7 +1320,18 @@ function generateReport() {
       const dailyTracker = dailyRecord.trackers.find((t) => t.name === trackerName);
 
       if (dailyTracker) {
-        if (tracker.type === "array-objects") {
+        if (tracker.type === "array-objects-checkbox") {
+          if (specificEntry) {
+            // Count the number of days the specific entry was taken
+            const entry = dailyTracker.value.find((e) => e.name === specificEntry);
+            if (entry && entry.checkbox) {
+              count++;
+            }
+          } else {
+            // For "All Entries", set count to "N/A"
+            count = "N/A";
+          }
+        } else if (tracker.type === "array-objects") {
           if (specificEntry) {
             const entry = dailyTracker.value.find((e) => e.name === specificEntry);
             if (entry) {
@@ -1329,17 +1340,7 @@ function generateReport() {
           } else {
             count += dailyTracker.value.length;
           }
-        } else if (tracker.type === "array-objects-checkbox") {
-          if (specificEntry) {
-            const entry = dailyTracker.value.find((e) => e.name === specificEntry);
-            if (entry.checkbox) {
-              count++;
-            }
-          } else {
-            count = "N/A"; // Count is not applicable for multiple checkbox entries
-          }
-        } 
-        else if (tracker.type === "unlimited-number" || tracker.type === "limited-number") {
+        } else if (tracker.type === "unlimited-number" || tracker.type === "limited-number") {
           totalValue += dailyTracker.value || 0;
           count++;
         }
@@ -1368,7 +1369,9 @@ function generateReport() {
     <p><strong>Tracker:</strong> ${trackerName}</p>
     <p><strong>Time Span:</strong> Last ${timeSpan} days</p>
     ${
-      tracker.type === "array-objects" || tracker.type === "array-objects-checkbox"
+      tracker.type === "array-objects-checkbox"
+        ? `<p><strong>Total Count:</strong> ${count}</p>`
+        : tracker.type === "array-objects"
         ? `<p><strong>Total Count:</strong> ${count}</p>`
         : `<p><strong>Average:</strong> ${average.toFixed(2)}</p>
            <p><strong>Trend:</strong> ${trend}</p>`
@@ -1379,7 +1382,18 @@ function generateReport() {
         .map(
           (result) => `
         <li>
-          <strong>${result.date}:</strong> ${typeof result.value === 'object' ? result.value.map(entry => `${entry.name ? entry.name : entry} ${entry.details ? "("+entry.details+")" : ""} ${entry.checkbox ? '&#9989;' : '&#10060;'}`).join(", ") : result.value}
+          <strong>${result.date}:</strong> ${
+            typeof result.value === "object"
+              ? result.value
+                  .map(
+                    (entry) =>
+                      `${entry.name ? entry.name : entry} ${
+                        entry.details ? "(" + entry.details + ")" : ""
+                      } ${entry.checkbox ? "&#9989;" : "&#10060;"}`
+                  )
+                  .join(", ")
+              : result.value
+          }
         </li>
       `
         )
