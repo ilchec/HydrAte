@@ -20,6 +20,20 @@ let measures = {};
 
 // --- Initialization ---
 function loadConfig() {
+  const isValid = validateLocalStorage();
+
+  if (!isValid) {
+    const userConfirmed = confirm(
+      "Your app data is invalid and will be reset. Click OK to proceed."
+    );
+    if (userConfirmed) {
+      resetLocalStorage();
+    } else {
+      alert("The app cannot proceed with invalid data. Please reload the page.");
+      return;
+    }
+  }
+
   let savedConfig = localStorage.getItem("config");
   let savedMeasures = localStorage.getItem("measures");
 
@@ -1579,4 +1593,75 @@ function selectIcon(iconName) {
 function closeIconSelector() {
   document.getElementById("iconSelectorModal").classList.add("hidden");
 }
+
+//localStorage Validation
+function validateLocalStorage() {
+  let isValid = true;
+
+  // Validate config structure
+  const savedConfig = localStorage.getItem("config");
+  if (savedConfig) {
+    try {
+      const parsedConfig = JSON.parse(savedConfig);
+      if (!Array.isArray(parsedConfig.members)) {
+        isValid = false;
+      } else {
+        parsedConfig.members.forEach((member) => {
+          if (
+            typeof member.name !== "string" ||
+            !Array.isArray(member.trackers)
+          ) {
+            isValid = false;
+          }
+        });
+      }
+    } catch (e) {
+      isValid = false;
+    }
+  }
+
+  // Validate measures structure
+  const savedMeasures = localStorage.getItem("measures");
+  if (savedMeasures) {
+    try {
+      const parsedMeasures = JSON.parse(savedMeasures);
+      if (typeof parsedMeasures !== "object" || Array.isArray(parsedMeasures)) {
+        isValid = false;
+      } else {
+        Object.keys(parsedMeasures).forEach((date) => {
+          const dailyData = parsedMeasures[date];
+          if (typeof dailyData !== "object") {
+            isValid = false;
+          } else {
+            Object.keys(dailyData).forEach((memberName) => {
+              const memberData = dailyData[memberName];
+              if (!Array.isArray(memberData.trackers)) {
+                isValid = false;
+              }
+            });
+          }
+        });
+      }
+    } catch (e) {
+      isValid = false;
+    }
+  }
+
+  return isValid;
+}
+
+function resetLocalStorage() {
+  // Clear localStorage
+  localStorage.clear();
+
+  // Initialize with default config and measures
+  config = { members: [] };
+  measures = {};
+
+  saveConfig();
+  saveMeasures();
+
+  alert("Your app data has been reset to the default structure.");
+}
+
 initApp();
