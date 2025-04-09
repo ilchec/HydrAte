@@ -1369,7 +1369,7 @@ function generateReport() {
         .map(
           (result) => `
         <li>
-          <strong>${result.date}:</strong> ${typeof result.value === 'object' ? result.value.map(entry => `${entry.name ? entry.name : entry} ${entry.details ? "("+entry.details+")" : ""} ${entry.checkbox ? '&#9989;' : ''}`).join(", ") : result.value}
+          <strong>${result.date}:</strong> ${typeof result.value === 'object' ? result.value.map(entry => `${entry.name ? entry.name : entry} ${entry.details ? "("+entry.details+")" : ""} ${entry.checkbox ? '&#9989;' : '&#10060;'}`).join(", ") : result.value}
         </li>
       `
         )
