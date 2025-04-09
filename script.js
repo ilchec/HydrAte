@@ -1320,7 +1320,7 @@ function generateReport() {
       const dailyTracker = dailyRecord.trackers.find((t) => t.name === trackerName);
 
       if (dailyTracker) {
-        if (tracker.type === "array-objects" || tracker.type === "array-objects-checkbox") {
+        if (tracker.type === "array-objects") {
           if (specificEntry) {
             const entry = dailyTracker.value.find((e) => e.name === specificEntry);
             if (entry) {
@@ -1329,7 +1329,17 @@ function generateReport() {
           } else {
             count += dailyTracker.value.length;
           }
-        } else if (tracker.type === "unlimited-number" || tracker.type === "limited-number") {
+        } else if (tracker.type === "array-objects-checkbox") {
+          if (specificEntry) {
+            const entry = dailyTracker.value.find((e) => e.name === specificEntry);
+            if (entry.checkbox) {
+              count++;
+            }
+          } else {
+            count = "N/A"; // Count is not applicable for multiple checkbox entries
+          }
+        } 
+        else if (tracker.type === "unlimited-number" || tracker.type === "limited-number") {
           totalValue += dailyTracker.value || 0;
           count++;
         }
