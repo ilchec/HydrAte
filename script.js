@@ -154,6 +154,7 @@ function ensureTodayRecordExists() {
 
 function addTrackerToExistingRecords(newTracker) {
   const today = new Date().toISOString().split("T")[0];
+  if (!measures[today]) measures[today] = {};
   const dailyRecord = measures[today][currentMember.name];
   Object.keys(measures).forEach((date) => {
     const dailyRecord = measures[date][currentMember.name];
@@ -432,10 +433,10 @@ function saveEditedTracker(index) {
 function updateTrackerFields() {
   const trackerType = document.getElementById("trackerType").value;
   const dynamicFields = document.getElementById("dynamicFields");
-
   let fieldsHTML = "";
 
   if (trackerType === "limited-number") {
+    const trackerIcon = document.getElementById("trackerIcon")?.value || null;
     fieldsHTML += `
       <div class="section">
         <label for="trackerValue"><strong>Enter Value:</strong></label>
@@ -443,10 +444,12 @@ function updateTrackerFields() {
       </div>
       <div class="section">
         <label for="trackerIcon"><strong>Select Icon:</strong></label>
-        <select id="trackerIcon">
-          <option value="glass-of-water">Glass of Water</option>
-          <option value="medicine">Medicine</option>
-        </select>
+        ${
+          trackerIcon
+            ? `<img src="images/trackingIcons/${trackerIcon}-filled.png" alt="${trackerIcon}-filled" class="icon-preview" onclick="openIconSelector()" />`
+            : `<button onclick="openIconSelector()">Select Icon</button>`
+        }
+        <input type="hidden" id="trackerIcon" value="${trackerIcon || ""}" />
       </div>
     `;
   }else if (trackerType === "array-strings") {
@@ -466,13 +469,16 @@ function updateTrackerFields() {
       </div>
     `;
   }else if (trackerType === "array-objects-checkbox") {
+    const trackerIcon = document.getElementById("trackerIcon")?.value || null;
     fieldsHTML += `
       <div class="section">
         <label for="trackerIcon"><strong>Select Icon:</strong></label>
-        <select id="trackerIcon">
-          <option value="glass-of-water">Glass of Water</option>
-          <option value="medicine">Medicine</option>
-        </select>
+        ${
+          trackerIcon
+            ? `<img src="images/trackingIcons/${trackerIcon}-filled.png" alt="${trackerIcon}-filled" class="icon-preview" onclick="openIconSelector()" />`
+            : `<button onclick="openIconSelector()">Select Icon</button>`
+        }
+        <input type="hidden" id="trackerIcon" value="${trackerIcon || ""}" />
       </div>
       <div class="section">
         <label for="favoriteEntries"><strong>Add Entries:</strong></label>
@@ -1372,4 +1378,51 @@ document.getElementById("content").addEventListener("click", (event) => {
     openAccordions[date] = accordion.classList.contains("open");
   }
 });
+
+const ICONS = [
+  "glass-of-water",
+  "medicine",
+  "checkbox"
+];
+
+function openIconSelector() {
+  const modal = document.getElementById("iconSelectorModal");
+  const iconGrid = modal.querySelector(".icon-grid");
+
+  // Populate the modal dynamically
+  iconGrid.innerHTML = ICONS.map(
+    (icon) => `
+      <img 
+        src="images/trackingIcons/${icon}-filled.png" 
+        alt="${icon}" 
+        onclick="selectIcon('${icon}')"
+      />
+    `
+  ).join("");
+
+  modal.classList.remove("hidden");
+}
+
+function selectIcon(iconName) {
+  const trackerIconInput = document.getElementById("trackerIcon");
+  trackerIconInput.value = iconName; // Set the selected icon value
+
+  // Update the icon display without re-rendering the fields
+  const iconPreview = document.querySelector(".icon-preview");
+  if (iconPreview) {
+    iconPreview.src = `images/trackingIcons/${iconName}-filled.png`;
+    iconPreview.alt = iconName;
+  } else {
+    const button = document.querySelector("button[onclick='openIconSelector()']");
+    if (button) {
+      button.outerHTML = `<img src="images/trackingIcons/${iconName}-filled.png" alt="${iconName}" class="icon-preview" onclick="openIconSelector()" />`;
+    }
+  }
+
+  closeIconSelector();
+}
+
+function closeIconSelector() {
+  document.getElementById("iconSelectorModal").classList.add("hidden");
+}
 initApp();
