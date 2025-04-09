@@ -175,7 +175,7 @@ function renderSettings() {
     <div id="memberSetup">
       ${member.name ? renderMemberSettings(member) : renderNewUserPrompt()}
     </div>
-    <div class="section notes-checkbox-section">
+    <div class="section checkbox-section">
       <input 
         type="checkbox" 
         id="enableNotes" 
@@ -1190,6 +1190,10 @@ function renderReports() {
       <label for="timeSpan"><strong>Time Span (Last X Days):</strong></label>
       <input type="number" id="timeSpan" placeholder="Enter number of days" />
     </div>
+    <div class="section checkbox-section" style="display: none;">
+      <input type="checkbox" id="showPeriodStats" onchange="togglePeriodStatistics()" />
+      <label for="showPeriodStats"><strong>Show Period Statistics</strong></label>
+    </div>
     <div class="section" id="specificEntrySection" style="display: none;">
       <label for="specificEntry"><strong>Select Specific Entry:</strong></label>
       <select id="specificEntry">
@@ -1198,6 +1202,7 @@ function renderReports() {
     </div>
     <button onclick="generateReport()">Generate Report</button>
     <div id="reportResults" class="section"></div>
+    <div id="periodStats" class="section" style="display: none;"></div>
   `;
 }
 
@@ -1205,9 +1210,11 @@ function updateReportOptions() {
   const trackerName = document.getElementById("trackerSelect").value;
   const specificEntrySection = document.getElementById("specificEntrySection");
   const specificEntryDropdown = document.getElementById("specificEntry");
+  const showPeriodStatsSection = document.querySelector(".checkbox-section");
 
   if (!trackerName) {
     specificEntrySection.style.display = "none";
+    showPeriodStatsSection.style.display = "none"; // Hide the checkbox if no tracker is selected
     return;
   }
 
@@ -1223,6 +1230,13 @@ function updateReportOptions() {
     specificEntryDropdown.innerHTML = `<option value="">All Entries</option>${entryOptions}`;
   } else {
     specificEntrySection.style.display = "none";
+  }
+
+  // Show or hide the "Show Period Statistics" checkbox based on tracker type
+  if (tracker.type === "limited-number") {
+    showPeriodStatsSection.style.display = "flex"; // Show the checkbox
+  } else {
+    showPeriodStatsSection.style.display = "none"; // Hide the checkbox
   }
 }
 
@@ -1257,11 +1271,7 @@ function generateReport() {
           if (specificEntry) {
             const entry = dailyTracker.value.find((e) => e.name === specificEntry);
             if (entry) {
-              if (tracker.type === "array-objects-checkbox" && entry.checkbox) {
-                count++;
-              } else {
-                count++;
-              }
+              count++;
             }
           } else {
             count += dailyTracker.value.length;
@@ -1288,7 +1298,7 @@ function generateReport() {
       trend = lastValue > firstValue ? "Growth" : lastValue < firstValue ? "Decline" : "No Change";
     }
   }
-  console.log("Report Results:", JSON.stringify(results));
+
   // Render the report
   reportResults.innerHTML = `
     <h3>Report Results</h3>
@@ -1313,6 +1323,102 @@ function generateReport() {
         .join("")}
     </ul>
   `;
+
+  // Recalculate period statistics if the checkbox is checked
+  if (document.getElementById("showPeriodStats").checked) {
+    togglePeriodStatistics();
+  }
+}
+
+function calculatePeriodStatistics(trackerName) {
+  const today = new Date();
+  const allDates = Object.keys(measures)
+    .filter((date) => measures[date][currentMember.name])
+    .sort((a, b) => new Date(a) - new Date(b)); // Sort dates in ascending order
+
+  const trackerValues = allDates.map((date) => {
+    const dailyRecord = measures[date][currentMember.name];
+    const tracker = dailyRecord.trackers.find((t) => t.name === trackerName);
+    return { date, value: tracker ? tracker.value : 0 };
+  });
+
+  let lastPeriodDate = null;
+  let periodDurations = [];
+  let cycleDurations = [];
+  let currentPeriodStart = null;
+  let currentPeriodLength = 0;
+  let zeroDayCount = 0;
+
+  trackerValues.forEach(({ date, value }, index) => {
+    if (value > 0) {
+      if (currentPeriodStart === null) {
+        currentPeriodStart = date; // Start of a new period
+      }
+      currentPeriodLength++;
+      zeroDayCount = 0; // Reset zero-day counter
+    } else {
+      zeroDayCount++;
+      if (zeroDayCount >= 9 && currentPeriodStart !== null) {
+        // End of the current period
+        periodDurations.push(currentPeriodLength);
+        lastPeriodDate = date;
+        currentPeriodStart = null;
+        currentPeriodLength = 0;
+
+        // Calculate cycle duration
+        if (periodDurations.length > 1) {
+          const previousPeriodEnd = new Date(allDates[index - currentPeriodLength - 1]);
+          const currentCycleStart = new Date(date);
+          const cycleDuration = Math.ceil((currentCycleStart - previousPeriodEnd) / (1000 * 60 * 60 * 24));
+          cycleDurations.push(cycleDuration);
+        }
+      }
+    }
+  });
+
+  // Calculate averages
+  const averagePeriodDuration =
+    periodDurations.reduce((sum, duration) => sum + duration, 0) / periodDurations.length || 0;
+  const averageCycleDuration =
+    cycleDurations.reduce((sum, duration) => sum + duration, 0) / cycleDurations.length || 0;
+
+  return {
+    lastPeriodDate,
+    averagePeriodDuration: averagePeriodDuration.toFixed(2),
+    averageCycleDuration: averageCycleDuration.toFixed(2),
+  };
+}
+
+function togglePeriodStatistics() {
+  const showPeriodStats = document.getElementById("showPeriodStats").checked;
+  const periodStatsSection = document.getElementById("periodStats");
+
+  if (showPeriodStats) {
+    const trackerName = document.getElementById("trackerSelect").value;
+    if (!trackerName) {
+      alert("Please select a tracker to view period statistics.");
+      document.getElementById("showPeriodStats").checked = false;
+      return;
+    }
+
+    const tracker = currentMember.trackers.find((t) => t.name === trackerName);
+    if (tracker.type !== "limited-number") {
+      alert("Period statistics are only available for limited-number trackers.");
+      document.getElementById("showPeriodStats").checked = false;
+      return;
+    }
+
+    const stats = calculatePeriodStatistics(trackerName);
+    periodStatsSection.innerHTML = `
+      <h3>Period Statistics</h3>
+      <p><strong>Last Period Date:</strong> ${stats.lastPeriodDate || "N/A"}</p>
+      <p><strong>Average Period Duration:</strong> ${stats.averagePeriodDuration} days</p>
+      <p><strong>Average Cycle Duration:</strong> ${stats.averageCycleDuration} days</p>
+    `;
+    periodStatsSection.style.display = "block";
+  } else {
+    periodStatsSection.style.display = "none";
+  }
 }
 
 //Import / Export
@@ -1382,7 +1488,16 @@ document.getElementById("content").addEventListener("click", (event) => {
 const ICONS = [
   "glass-of-water",
   "medicine",
-  "checkbox"
+  "checkbox",
+  "blood-drop",
+  "headache-man",
+  "headache-woman",
+  "period-calendar",
+  "period-pain",
+  "wine-glass",
+  "beer-mug",
+  "nail-biting",
+  "trichotillomania"
 ];
 
 function openIconSelector() {
