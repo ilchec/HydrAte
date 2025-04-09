@@ -356,7 +356,8 @@ button.remove-button:hover {
   }
 
   button[onclick^="add"],
-  button[onclick^="save"] {
+  button[onclick^="save"],
+  button[onclick^="show"] {
     width: 100%; /* Full width */
     margin: 0 .5rem 0.5rem 0; /* Adjust padding for mobile */
   }

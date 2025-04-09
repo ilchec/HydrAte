@@ -1,12 +1,5 @@
 // Constants
 const DEFAULT_SETTINGS = {
-  trackWeight: true,
-  trackWaterNorm: true,
-  trackSweets: true,
-  trackActivities: true,
-  trackRegularMedications: true,
-  trackOccasionalMedications: true,
-  trackExercises: true,
 };
 
 const DEFAULT_MEMBER = {
@@ -20,13 +13,6 @@ const DEFAULT_MEMBER = {
   settings: { ...DEFAULT_SETTINGS },
 };
 
-const ICONS = {
-  waterFilled: "images/glass-of-water.png",
-  waterEmpty: "images/glass-of-water-empty.png",
-  medicineFilled: "images/medicine-filled.png",
-  medicineEmpty: "images/medicine.png",
-};
-
 // Global Variables
 let currentMember = null;
 let config = { members: [] };
@@ -34,17 +20,14 @@ let measures = {};
 
 // --- Initialization ---
 function loadConfig() {
-  const savedConfig = localStorage.getItem("config");
-  const savedMeasures = localStorage.getItem("measures");
+  let savedConfig = localStorage.getItem("config");
+  let savedMeasures = localStorage.getItem("measures");
 
   config = savedConfig ? JSON.parse(savedConfig) : { members: [] };
   measures = savedMeasures ? JSON.parse(savedMeasures) : {};
 
-  if (!config.members || config.members.length === 0) {
-    renderSettings();
-  } else {
-    initApp();
-  }
+  console.log("Loaded config:", config);
+  console.log("Loaded measures:", measures);
 }
 
 function saveConfig() {
@@ -57,14 +40,20 @@ function saveMeasures() {
 
 // --- App Initialization ---
 function initApp() {
-  if (config.members.length === 0) {
-    currentMember = null;
-    document.getElementById("content").innerHTML =
-      "<p>No members available. Please configure the app in the settings.</p>";
+  loadConfig();
+
+  // Ensure there are members in the config
+  if (!config.members || config.members.length === 0) {
+    console.log("No members found. Redirecting to settings.");
+    renderSettings(); // Redirect to settings page for new users
     return;
   }
 
+  // Set the current member to the first member in the config
   currentMember = config.members[0];
+  console.log("Current member:", currentMember);
+
+  // Ensure today's record exists and render the diary
   ensureTodayRecordExists();
   renderDiary(currentMember);
 }
@@ -79,53 +68,158 @@ function ensureTodayRecordExists() {
 }
 
 function createDefaultDailyRecord() {
+  if (!currentMember) {
+    console.error("No current member found. Cannot create a daily record.");
+    return null;
+  }
+
   return {
-    water: 0,
-    sweets: [],
-    regularMedications: currentMember.medications.regular.map((med) => ({
-      name: med.name || "",
-      dose: med.dose || "",
-      taken: false,
+    trackers: currentMember.trackers.map((tracker) => ({
+      name: tracker.name,
+      type: tracker.type,
+      value:
+        tracker.type === "unlimited-number"
+          ? tracker.value || 0
+          : tracker.type === "limited-number"
+          ? tracker.value || 0
+          : tracker.type === "array-strings"
+          ? tracker.value || []
+          : tracker.type === "array-objects"
+          ? tracker.value || []
+          : tracker.type === "array-objects-checkbox"
+          ? (tracker.value || []).map((item) => ({
+              name: item.name || "",
+              details: item.details || "",
+              checkbox: item.checkbox || false,
+            }))
+          : tracker.type === "array-objects-sets"
+          ? (tracker.value || []).map((setGroup) => ({
+              name: setGroup.name || "",
+              reps: setGroup.reps || [],
+              actualReps: Array(setGroup.reps?.length || 0).fill(0), // Initialize actualReps
+            }))
+          : null,
+      icon: tracker.icon || null, // Include the icon for rendering
     })),
-    occasionalMedications: currentMember.medications.occasional
-      .filter((med) => med.name && med.dose) // Filter out invalid entries
-      .map((med) => ({
-        name: med.name,
-        dose: med.dose,
-      })),
-    activity: [],
-    exercises: currentMember.exercises.map((ex) => ({
-      name: ex.name,
-      actualReps: Array(ex.reps.length).fill(0), // Initialize reps for each exercise
-    })),
-    weight: currentMember.weight,
     note: "",
   };
+}
+
+function syncTrackersWithDailyRecord(dailyRecord, trackers) {
+  trackers.forEach((tracker) => {
+    if (!dailyRecord.trackers.find((t) => t.name === tracker.name)) {
+      dailyRecord.trackers.push({
+        name: tracker.name,
+        type: tracker.type,
+        value:
+          tracker.type === "unlimited-number"
+            ? tracker.value || 0
+            : tracker.type === "limited-number"
+            ? tracker.value || 0
+            : tracker.type === "array-strings"
+            ? []
+            : tracker.type === "array-objects"
+            ? []
+            : tracker.type === "array-objects-checkbox"
+            ? (tracker.value || []).map((item) => ({
+                name: item.name || "",
+                details: item.details || "",
+                checkbox: item.checkbox || false,
+              }))
+            : tracker.type === "array-objects-sets"
+            ? (tracker.value || []).map((setGroup) => ({
+                name: setGroup.name || "",
+                reps: setGroup.reps || [],
+                actualReps: Array(setGroup.reps?.length || 0).fill(0), // Sync actualReps
+              }))
+            : null,
+        icon: tracker.icon || null,
+      });
+    }
+  });
 }
 
 function ensureTodayRecordExists() {
   const today = new Date().toISOString().split("T")[0];
   if (!measures[today]) measures[today] = {};
   if (!measures[today][currentMember.name]) {
+    console.log(`Creating default daily record for ${today}`);
     measures[today][currentMember.name] = createDefaultDailyRecord();
     saveMeasures();
+  } else {
+    console.log(`Syncing today's record for ${today}`);
+    syncTrackersWithDailyRecord(measures[today][currentMember.name], currentMember.trackers);
   }
+}
+
+function addTrackerToExistingRecords(newTracker) {
+  Object.keys(measures).forEach((date) => {
+    const dailyRecord = measures[date][currentMember.name];
+    if (dailyRecord) {
+      syncTrackersWithDailyRecord(dailyRecord, [newTracker]);
+    }
+  });
 }
 
 // --- Settings ---
 function renderSettings() {
   const content = document.getElementById("content");
-  const member = config.members[0] || { ...DEFAULT_MEMBER };
+  const member = config.members[0] || { name: "", trackers: [], enableNotes: false };
 
   content.innerHTML = `
     <h2>Settings</h2>
-    <p>Update your settings below:</p>
-    ${renderMemberSettings(member)}
-    ${renderTrackersSettings(member)}
-    <div id="saveButton" class="button-100" onclick="saveSettings()">Save Changes</div>
+    <div id="memberSetup">
+      ${member.name ? renderMemberSettings(member) : renderNewUserPrompt()}
+    </div>
+    <div class="section">
+      <input 
+        type="checkbox" 
+        id="enableNotes" 
+        ${member.enableNotes ? "checked" : ""} 
+        onchange="toggleNotesSetting()"
+      />
+      <label for="enableNotes"><strong>Enable Notes</strong></label>
+    </div>
+    <div id="trackerSetup">
+      ${member.name ? renderTrackersSettings(member) : ""}
+    </div>
   `;
+}
 
-  addSettingsEventListeners();
+function renderNewUserPrompt() {
+  return `
+    <div class="section">
+      <label for="newUserName"><strong>Enter Your Name:</strong></label>
+      <input type="text" id="newUserName" placeholder="Enter your name" />
+      <button onclick="saveNewUser()">Save</button>
+    </div>
+  `;
+}
+
+function toggleNotesSetting() {
+  const enableNotesCheckbox = document.getElementById("enableNotes");
+  currentMember.enableNotes = enableNotesCheckbox.checked;
+  saveConfig();
+  console.log(`Notes are now ${enableNotesCheckbox.checked ? "enabled" : "disabled"}.`);
+}
+
+function saveNewUser() {
+  const newUserName = document.getElementById("newUserName").value.trim();
+  if (!newUserName) {
+    alert("Please enter your name.");
+    return;
+  }
+
+  config.members = [
+    {
+      name: newUserName,
+      trackers: [], // Start with no trackers
+    },
+  ];
+  saveConfig();
+  loadConfig();
+  currentMember = config.members[0];
+  renderSettings();
 }
 
 function renderMemberSettings(member) {
@@ -134,136 +228,595 @@ function renderMemberSettings(member) {
       <label for="memberName"><strong>Member Name:</strong></label>
       <input type="text" id="memberName" value="${member.name}" placeholder="Enter name" />
     </div>
-    <div class="section">
-      <label class="flex-label">
-        <input type="checkbox" id="trackWeight" ${member.settings.trackWeight ? "checked" : ""} />
-        <strong>Track Weight</strong>
-      </label>
-      <input type="number" id="memberWeight" value="${member.weight}" placeholder="Enter weight" ${member.settings.trackWeight ? "" : "style='display: none;'"} />
-    </div>
-    <div class="section">
-      <label class="flex-label">
-        <input type="checkbox" id="trackWaterNorm" ${member.settings.trackWaterNorm ? "checked" : ""} />
-        <strong>Track Daily Water Norm</strong>
-      </label>
-      <input type="number" id="waterNorm" value="${member.waterNorm}" placeholder="Enter water norm" ${member.settings.trackWaterNorm ? "" : "style='display: none;'"} />
-    </div>
   `;
 }
 
 function renderTrackersSettings(member) {
   return `
     <div class="section">
-      <label class="flex-label">
-        <input type="checkbox" id="trackSweets" ${member.settings.trackSweets ? "checked" : ""} />
-        <strong>Track Sweets</strong>
-      </label>
-      <div id="sweetsContainer" ${member.settings.trackSweets ? "" : "style='display: none;'"} >
-        ${member.sweets
-          .map(
-            (sweet) => `
-          <div class="input-group">
-            <input type="text" value="${sweet}" placeholder="Enter sweet" />
-            <button class="remove-button" onclick="removeParent(this)">X</button>
-          </div>
-        `
-          )
-          .join("")}
-      </div>
-      <button onclick="addSweets()" ${member.settings.trackSweets ? "" : "style='display: none;'"}>+ Add Sweet</button>
+      <button onclick="showAddTrackerDialog()">+ Add Tracker</button>
     </div>
-    <div class="section">
-      <label class="flex-label">
-        <input type="checkbox" id="trackActivities" ${member.settings.trackActivities ? "checked" : ""} />
-        <strong>Track Activities</strong>
-      </label>
-      <div id="activitiesContainer" ${member.settings.trackActivities ? "" : "style='display: none;'"} >
-        ${member.activity
-          .map(
-            (activity) => `
-          <div class="input-group">
-            <input type="text" value="${activity.name}" placeholder="Activity Name" />
-            <input type="text" value="${activity.details}" placeholder="Details" />
-            <button class="remove-button" onclick="removeParent(this)">X</button>
+    <div id="trackerList">
+      ${member.trackers
+        .map(
+          (tracker, index) => `
+          <div class="tracker-item">
+            <input 
+              type="checkbox" 
+              id="trackerActive-${index}" 
+              ${tracker.isActive ? "checked" : ""} 
+              onchange="toggleTrackerActive(${index})"
+            />
+            <label for="trackerActive-${index}">
+              <strong>${tracker.name}</strong> (${tracker.type})
+            </label>
           </div>
         `
-          )
-          .join("")}
-      </div>
-      <button onclick="addActivities()" ${member.settings.trackActivities ? "" : "style='display: none;'"}>+ Add Activity</button>
-    </div>
-    <div class="section">
-      <label class="flex-label">
-        <input type="checkbox" id="trackRegularMedications" ${member.settings.trackRegularMedications ? "checked" : ""} />
-        <strong>Track Regular Medications</strong>
-      </label>
-      <div id="regularMedicationsContainer" ${member.settings.trackRegularMedications ? "" : "style='display: none;'"} >
-        ${member.medications.regular
-          .map(
-            (med) => `
-          <div class="input-group">
-            <input type="text" value="${med.name}" placeholder="Medication Name" />
-            <input type="text" value="${med.dose}" placeholder="Dose" />
-            <button class="remove-button" onclick="removeParent(this)">X</button>
-          </div>
-        `
-          )
-          .join("")}
-      </div>
-      <button onclick="addRegularMedications()" ${member.settings.trackRegularMedications ? "" : "style='display: none;'"}>+ Add Medication</button>
-    </div>
-    <div class="section">
-      <label class="flex-label">
-        <input type="checkbox" id="trackOccasionalMedications" ${member.settings.trackOccasionalMedications ? "checked" : ""} />
-        <strong>Track Occasional Medications</strong>
-      </label>
-      <div id="occasionalMedicationsContainer" ${member.settings.trackOccasionalMedications ? "" : "style='display: none;'"} >
-        ${member.medications.occasional
-          .map(
-            (med) => `
-          <div class="input-group">
-            <input type="text" value="${med}" placeholder="Medication Name" />
-            <button class="remove-button" onclick="removeParent(this)">X</button>
-          </div>
-        `
-          )
-          .join("")}
-      </div>
-      <button onclick="addOccasionalMedications()" ${member.settings.trackOccasionalMedications ? "" : "style='display: none;'"}>+ Add Medication</button>
-    </div>
-    <div class="section">
-      <label class="flex-label">
-        <input type="checkbox" id="trackExercises" ${member.settings.trackExercises ? "checked" : ""} />
-        <strong>Track Exercises</strong>
-      </label>
-      <div id="exercisesContainer" ${member.settings.trackExercises ? "" : "style='display: none;'"} >
-        ${member.exercises
-          .map(
-            (exercise) => `
-          <div class="exercise-entry">
-            <input type="text" value="${exercise.name}" placeholder="Exercise Name" />
-            <div class="sets-container">
-              ${exercise.reps
-                .map(
-                  (rep) => `
-                <div class="input-group">
-                  <input type="number" value="${rep}" placeholder="Reps" />
-                  <button class="remove-button" onclick="removeParent(this)">X</button>
-                </div>
-              `
-                )
-                .join("")}
-            </div>
-            <button onclick="addSet(this)">+ Add Set</button>
-            <button class="remove-button button-100" onclick="removeParent(this)">Remove Exercise</button>
-          </div>
-        `
-          )
-          .join("")}
-      </div>
-      <button onclick="addExercises()" ${member.settings.trackExercises ? "" : "style='display: none;'"}>+ Add Exercise</button>
+        )
+        .join("")}
     </div>
   `;
+}
+
+function toggleTrackerActive(index) {
+  const tracker = currentMember.trackers[index];
+  if (!tracker) {
+    console.error(`Tracker at index ${index} not found.`);
+    return;
+  }
+
+  tracker.isActive = !tracker.isActive; // Toggle the isActive property
+  saveConfig(); // Save the updated config
+  console.log(`Tracker "${tracker.name}" is now ${tracker.isActive ? "active" : "inactive"}.`);
+}
+
+function showAddTrackerDialog() {
+  const content = document.getElementById("trackerSetup");
+  content.innerHTML = `
+    <div class="section">
+      <label for="trackerType"><strong>Select Tracker Type:</strong></label>
+      <select id="trackerType" onchange="updateTrackerFields()">
+        <option value="unlimited-number">Unlimited Number</option>
+        <option value="limited-number">Limited Number</option>
+        <option value="array-strings">Array of Strings</option>
+        <option value="array-objects">Array of Objects</option>
+        <option value="array-objects-checkbox">Array of Objects with Checkbox</option>
+        <option value="array-objects-sets">Array of Objects with Sets</option>
+      </select>
+    </div>
+    <div class="section">
+      <label for="trackerName"><strong>Enter Tracker Name:</strong></label>
+      <input type="text" id="trackerName" placeholder="Enter tracker name" />
+    </div>
+    <div id="dynamicFields"></div>
+    <button onclick="saveTracker()">Save</button>
+  `;
+}
+
+function updateTrackerFields() {
+  const trackerType = document.getElementById("trackerType").value;
+  const dynamicFields = document.getElementById("dynamicFields");
+
+  let fieldsHTML = "";
+
+  if (trackerType === "limited-number") {
+    fieldsHTML += `
+      <div class="section">
+        <label for="trackerValue"><strong>Enter Value:</strong></label>
+        <input type="number" id="trackerValue" placeholder="Enter value (e.g., 10)" />
+      </div>
+      <div class="section">
+        <label for="trackerIcon"><strong>Select Icon:</strong></label>
+        <select id="trackerIcon">
+          <option value="glass-of-water">Glass of Water</option>
+          <option value="medicine">Medicine</option>
+        </select>
+      </div>
+    `;
+  }else if (trackerType === "array-strings") {
+    fieldsHTML += `
+      <div class="section">
+        <label for="favoriteEntries"><strong>Add Favorite Entries:</strong></label>
+        <div id="favoriteEntriesContainer"></div>
+        <button onclick="addFavoriteEntry()">+ Add Entry</button>
+      </div>
+    `;
+  } else if (trackerType === "array-objects") {
+    fieldsHTML += `
+      <div class="section">
+        <label for="favoriteEntries"><strong>Add Entries:</strong></label>
+        <div id="favoriteEntriesContainer"></div>
+        <button onclick="addFavoriteEntryObject()">+ Add Entry</button>
+      </div>
+    `;
+  }else if (trackerType === "array-objects-checkbox") {
+    fieldsHTML += `
+      <div class="section">
+        <label for="trackerIcon"><strong>Select Icon:</strong></label>
+        <select id="trackerIcon">
+          <option value="glass-of-water">Glass of Water</option>
+          <option value="medicine">Medicine</option>
+        </select>
+      </div>
+      <div class="section">
+        <label for="favoriteEntries"><strong>Add Entries:</strong></label>
+        <div id="favoriteEntriesContainer"></div>
+        <button onclick="addFavoriteEntryObject()">+ Add Entry</button>
+      </div>
+    `;
+  } else if (trackerType === "array-objects-sets") {
+    fieldsHTML += `
+      <div class="section">
+        <label for="sets"><strong>Create Sections and Sets:</strong></label>
+        <div id="setsContainer"></div>
+        <button onclick="addSetGroup()">+ Add Section</button>
+      </div>
+    `;
+  }
+
+  dynamicFields.innerHTML = fieldsHTML;
+}
+
+function toggleValueInput() {
+  const trackerType = document.getElementById("trackerType").value;
+  const valueInputSection = document.getElementById("valueInputSection");
+
+  if (trackerType === "limited-number") {
+    valueInputSection.style.display = "block";
+  } else {
+    valueInputSection.style.display = "none";
+  }
+}
+
+function saveTracker() {
+  if (!currentMember) {
+    alert("No member found. Please set up a member in the settings.");
+    renderSettings();
+    return;
+  }
+
+  const trackerType = document.getElementById("trackerType").value;
+  const trackerName = document.getElementById("trackerName").value.trim();
+  const trackerIconElement = document.getElementById("trackerIcon");
+  const trackerIcon = trackerIconElement ? trackerIconElement.value : null;
+  const trackerValueElement = document.getElementById("trackerValue");
+  const trackerValue = trackerValueElement ? parseInt(trackerValueElement.value) : null;
+  console.log(trackerIcon);
+
+  if (!trackerName) {
+    alert("Please enter a tracker name.");
+    return;
+  }
+
+  // Validate the icon only for tracker types that require it
+  if ((trackerType === "limited-number" || trackerType === "array-objects-checkbox") && !trackerIcon) {
+    alert("Please select an icon for the tracker.");
+    return;
+  }
+
+  const newTracker = {
+    name: trackerName,
+    type: trackerType,
+    isActive: true,
+    value: ["unlimited-number", "limited-number"].includes(trackerType) ? trackerValue || 0 : [], // Default to 0 or an empty array
+    icon: trackerIcon || null, // Assign the selected icon or null
+  };
+
+  // Handle specific tracker types
+  if (trackerType === "array-strings") {
+    const entries = Array.from(document.querySelectorAll("#favoriteEntriesContainer input"))
+      .map((input) => input.value.trim())
+      .filter((value) => value);
+    newTracker.value = entries; // Save favorite entries
+  } else if (trackerType === "array-objects") {
+    const objects = Array.from(document.querySelectorAll("#favoriteEntriesContainer .input-group"))
+      .map((group) => ({
+        name: group.querySelector("input:nth-of-type(1)").value.trim(),
+        details: group.querySelector("input:nth-of-type(2)").value.trim(),
+      }))
+      .filter((obj) => obj.name); // Only save objects with a valid "name"
+    newTracker.value = objects;
+  } else if (trackerType === "array-objects-checkbox") {
+    const entries = Array.from(document.querySelectorAll("#favoriteEntriesContainer .input-group"))
+      .map((group) => ({
+        name: group.querySelector("input:nth-of-type(1)").value.trim(),
+        details: group.querySelector("input:nth-of-type(2)").value.trim(),
+        checkbox: false, // Default "checkbox" status
+      }))
+      .filter((entry) => entry.name); // Only save valid entries with a name
+    newTracker.value = entries;
+  } else if (trackerType === "array-objects-sets") {
+    const setGroups = Array.from(document.querySelectorAll("#setsContainer .setGroup-entry")).map((setGroup) => {
+      const name = setGroup.querySelector("input[type='text']").value.trim();
+      const reps = Array.from(setGroup.querySelectorAll(".sets-container input[type='number']"))
+        .map((input) => parseInt(input.value))
+        .filter((value) => !isNaN(value));
+      return { name, reps };
+    });
+    newTracker.value = setGroups;
+  }
+
+  // Add the tracker to the config
+  config.members[0].trackers.push(newTracker);
+  saveConfig();
+  // Add the tracker to all existing records
+  addTrackerToExistingRecords(newTracker);
+
+  saveMeasures();
+  renderSettings(); // Return to the settings page
+}
+
+function addFavoriteEntry(trackerType) {
+  const container = document.getElementById("favoriteEntriesContainer");
+  const entry = document.createElement("div");
+  entry.className = "input-group";
+
+  entry.innerHTML = `
+      <input type="text" placeholder="Entry (e.g., Ibuprofen)" />
+      <button class="remove-button" onclick="removeParent(this)">X</button>
+    `;
+  container.appendChild(entry);
+}
+
+function addFavoriteEntryObject() {
+  const container = document.getElementById("favoriteEntriesContainer");
+  const entry = document.createElement("div");
+  entry.className = "input-group";
+  entry.innerHTML = `
+    <input type="text" placeholder="Entry (e.g., Ibuprofen)" />
+    <input type="text" placeholder="Details (e.g., 600mg)" />
+    <button class="remove-button" onclick="removeParent(this)">X</button>
+  `;
+  container.appendChild(entry);
+}
+
+function addSetGroup() {
+  const container = document.getElementById("setsContainer");
+  const setGroup = document.createElement("div");
+  setGroup.className = "setGroup-entry";
+  setGroup.innerHTML = `
+    <input type="text" placeholder="Section Name (e.g., Push-ups)" />
+    <div class="sets-container">
+      <button onclick="addSetToSetGroup(this)">+ Add Set</button>
+    </div>
+    <button class="remove-button" onclick="removeParent(this)">X</button>
+  `;
+  container.appendChild(setGroup);
+}
+
+function addSetToSetGroup(button) {
+  const setsContainer = button.parentElement;
+  const set = document.createElement("div");
+  set.className = "input-group";
+  set.innerHTML = `
+    <input type="number" placeholder="Reps (e.g., 10)" />
+    <button class="remove-button" onclick="removeParent(this)">X</button>
+  `;
+  setsContainer.insertBefore(set, button);
+}
+
+function renderTrackerSetup(tracker) {
+  const content = document.getElementById("trackerSetup");
+
+  if (tracker.type === "limited-number" || tracker.type === "array-objects") {
+    content.innerHTML = `
+      <div class="section">
+        <label for="trackerIcon"><strong>Select Icon:</strong></label>
+        <select id="trackerIcon">
+          <option value="glass-of-water">Glass of Water</option>
+          <option value="medicine">Medicine</option>
+        </select>
+      </div>
+      <button onclick="saveTrackerIcon('${tracker.name}')">Save</button>
+    `;
+  } else if (tracker.type === "array-strings") {
+    content.innerHTML = `
+      <div class="section">
+        <label for="favoriteEntries"><strong>Add Favorite Entries:</strong></label>
+        <div id="favoriteEntriesContainer"></div>
+        <button onclick="addFavoriteEntry()">+ Add Entry</button>
+      </div>
+      <button onclick="saveFavoriteEntries('${tracker.name}')">Save</button>
+    `;
+  } else if (tracker.type === "array-objects") {
+    content.innerHTML = `
+      <div class="section">
+        <label for="favoriteEntries"><strong>Add Favorite Entries:</strong></label>
+        <div id="favoriteEntriesContainer"></div>
+        <button onclick="addFavoriteEntryObject()">+ Add Entry</button>
+      </div>
+      <button onclick="saveFavoriteEntries('${tracker.name}')">Save</button>
+    `;
+  } else if (tracker.type === "array-objects-checkbox") {
+    content.innerHTML = `
+      <div class="section">
+        <label for="trackerIcon"><strong>Select Icon:</strong></label>
+        <select id="trackerIcon">
+          <option value="glass-of-water">Glass of Water</option>
+          <option value="medicine">Medicine</option>
+        </select>
+        <label for="favoriteEntries"><strong>Add Favorite Entries:</strong></label>
+        <div id="favoriteEntriesContainer"></div>
+        <button onclick="addFavoriteEntryObject()">+ Add Entry</button>
+      </div>
+      <button onclick="saveTrackerIcon('${tracker.name}')">Save</button>
+    `;
+  }else if (tracker.type === "array-objects-sets") {
+    content.innerHTML = `
+      <div class="section">
+        <label for="sets"><strong>Create Sets:</strong></label>
+        <div id="setsContainer"></div>
+        <button onclick="addSet()">+ Add Set</button>
+      </div>
+      <button onclick="saveSets('${tracker.name}')">Save</button>
+    `;
+  }
+}
+
+function saveTrackerIcon(trackerName) {
+  const trackerIcon = document.getElementById("trackerIcon").value;
+  const tracker = config.members[0].trackers.find((t) => t.name === trackerName);
+
+  if (!tracker) {
+    alert("Tracker not found.");
+    return;
+  }
+
+  tracker.icon = trackerIcon;
+  if (tracker.type === "array-objects-checkbox") {
+    console.log(tracker);
+    saveFavoriteEntries(trackerName);
+    return;
+  }
+  saveConfig();
+  renderSettings(); // Return to the settings page
+}
+
+function saveFavoriteEntries(trackerName) {
+  const container = document.getElementById("favoriteEntriesContainer");
+  const entries = Array.from(container.querySelectorAll("input"))
+    .map((input) => input.value.trim())
+    .filter((value) => value);
+
+  const tracker = config.members[0].trackers.find((t) => t.name === trackerName);
+  tracker.value = entries;
+  console.log(tracker);
+  saveConfig();
+  renderSettings();
+}
+
+function addSet() {
+  const container = document.getElementById("setsContainer");
+  const set = document.createElement("div");
+  set.innerHTML = `
+    <input type="number" placeholder="Reps" />
+    <button class="remove-button" onclick="removeParent(this)">X</button>
+  `;
+  container.appendChild(set);
+}
+
+function saveSets(trackerName) {
+  const container = document.getElementById("setsContainer");
+  const sets = Array.from(container.querySelectorAll("input"))
+    .map((input) => parseInt(input.value))
+    .filter((value) => !isNaN(value));
+
+  const tracker = config.members[0].trackers.find((t) => t.name === trackerName);
+  tracker.value = sets;
+  saveConfig();
+  renderSettings();
+}
+
+function renderTracker(tracker, member, date) {
+  switch (tracker.type) {
+    case "unlimited-number":
+      return `
+        <div class="section">
+          <strong>${tracker.name}:</strong>
+          <input 
+            type="number" 
+            value="${tracker.value || 0}" 
+            onchange="updateTracker('${date}', '${member.name}', '${tracker.name}', this.value)" 
+          />
+        </div>
+      `;
+
+    case "limited-number":
+      return `
+        <div class="section">
+          <strong>${tracker.name}:</strong>
+          <div class="glass-container">
+            ${Array.from({ length: tracker.value }, (_, i) => `
+              <img 
+                src="${i < (tracker.current || 0) ? 'images/trackingIcons/'+tracker.icon+'-filled.png' : 'images/trackingIcons/'+tracker.icon+'.png'}" 
+                class="glass" 
+                onclick="updateTracker('${date}', '${member.name}', '${tracker.name}', ${i + 1})"
+              />
+            `).join("")}
+          </div>
+        </div>
+      `;
+
+    case "array-strings":
+      return `
+        <div class="section">
+          <strong>${tracker.name}:</strong>
+          <div id="${tracker.name.toLowerCase()}Container-${date}">
+            ${(tracker.value || []).map((item, i) => `
+              <div class="input-group">
+                <input 
+                  type="text" 
+                  value="${item}" 
+                  placeholder="Enter ${tracker.name}" 
+                  onchange="updateTracker('${date}', '${member.name}', '${tracker.name}', this.value, ${i})" 
+                />
+                <button class="remove-button" onclick="removeTrackerItem('${date}', '${member.name}', '${tracker.name}', ${i})">X</button>
+              </div>
+            `).join("")}
+          </div>
+          <button onclick="addTrackerItem('${tracker.name}')">+ Add ${tracker.name}</button>
+        </div>
+      `;
+
+      case "array-objects":
+        return `
+          <div class="section">
+            <strong>${tracker.name}:</strong>
+            <div id="${tracker.name.toLowerCase()}Container-${date}">
+              ${(tracker.value || []).map((item, i) => `
+                <div class="input-group">
+                  <input 
+                    type="text" 
+                    value="${item.name || ""}" 
+                    placeholder="Entry (e.g., Running)" 
+                    onchange="updateTracker('${date}', '${member.name}', '${tracker.name}', this.value, ${i}, 'name')" 
+                  />
+                  <input 
+                    type="text" 
+                    value="${item.details || ""}" 
+                    placeholder="Detail (e.g., 5km)" 
+                    onchange="updateTracker('${date}', '${member.name}', '${tracker.name}', this.value, ${i}, 'details')" 
+                  />
+                  <button class="remove-button" onclick="removeTrackerItem('${date}', '${member.name}', '${tracker.name}', ${i})">X</button>
+                </div>
+              `).join("")}
+            </div>
+            <button onclick="addTrackerItem('${tracker.name}', '${date}')">+ Add ${tracker.name}</button>
+          </div>
+        `;
+
+      case "array-objects-checkbox":
+      console.log(tracker);
+      return `
+        <div class="section">
+          <strong>${tracker.name}:</strong>
+          <div id="${tracker.name.toLowerCase()}Container-${date}">
+            ${(tracker.value || []).map((item, i) => `
+              <div class="input-group">
+                <img 
+                  src="${item.checkbox ? 'images/trackingIcons/'+config.members[0].trackers.find((t) => t.name === tracker.name).icon+'-filled.png' : 'images/trackingIcons/'+config.members[0].trackers.find((t) => t.name === tracker.name).icon+'.png'}" 
+                  class="medicine" 
+                  onclick="toggleArrayObjectCheckbox('${date}', '${member.name}', '${tracker.name}', ${i})"
+                  alt="Checkbox Icon"
+                />
+                <span>${item.name} (${item.details})</span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `;
+
+      case "array-objects-sets":
+      return `
+        <div class="section">
+          <strong>${tracker.name}:</strong>
+          ${(tracker.value || []).map((setGroup, i) => `
+            <div class="setGroup-entry">
+              <strong>${setGroup.name}</strong>
+              ${(setGroup.reps || []).map((rep, j) => `
+                <div class="input-group">
+                  <input 
+                    type="number" 
+                    value="${setGroup.actualReps?.[j] || ""}" 
+                    placeholder="Actual Reps" 
+                    onchange="updateTracker('${date}', '${member.name}', '${tracker.name}', this.value, ${i}, 'actualReps', ${j})" 
+                  />
+                  <span class="input-45">(Base: ${rep})</span>
+                </div>
+              `).join("")}
+            </div>
+          `).join("")}
+        </div>
+      `;
+
+    default:
+      return `
+        <div class="section">
+          <strong>${tracker.name}:</strong>
+          <p>Unsupported tracker type: ${tracker.type}</p>
+        </div>
+      `;
+  }
+}
+function updateTracker(date, memberName, trackerName, value, index = null, key = null, subIndex = null) {
+  const tracker = measures[date][memberName].trackers.find((t) => t.name === trackerName);
+
+  if (!tracker) {
+    console.error(`Tracker "${trackerName}" not found for ${memberName} on ${date}`);
+    return;
+  }
+
+  if (tracker.type === "limited-number") {
+    tracker.current = value; // Update the current value for limited-number trackers
+  } else if (index !== null) {
+    if (key) {
+      if (subIndex !== null) {
+        tracker.value[index][key][subIndex] = parseInt(value) || 0;
+      } else {
+        tracker.value[index][key] = value;
+      }
+    } else {
+      tracker.value[index] = value;
+    }
+  } else {
+    tracker.value = value;
+  }
+
+  console.log("Updated tracker:", tracker);
+  saveMeasures(); // Save the updated measures to local storage
+  renderDiary(currentMember); // Re-render the diary to reflect the changes
+}
+
+function addTrackerItem(trackerName, date) {
+  const tracker = currentMember.trackers.find((t) => t.name === trackerName);
+
+  if (!tracker) {
+    console.error(`Tracker "${trackerName}" not found.`);
+    return;
+  }
+
+  const dailyRecord = measures[date][currentMember.name];
+
+  if (!dailyRecord) {
+    console.error(`No daily record found for ${currentMember.name} on ${date}`);
+    return;
+  }
+
+  const dailyTracker = dailyRecord.trackers.find((t) => t.name === trackerName);
+
+  if (!dailyTracker) {
+    console.error(`Tracker "${trackerName}" not found in the record for ${date}.`);
+    return;
+  }
+
+  // Add a new item based on the tracker type
+  if (tracker.type === "array-strings") {
+    dailyTracker.value.push(""); // Add an empty string for array-strings
+  } else if (tracker.type === "array-objects") {
+    dailyTracker.value.push({ name: "", details: "" }); // Add a new object with default values
+  } else if (tracker.type === "array-objects-checkbox") {
+    dailyTracker.value.push({ name: "", details: "", checkbox: false }); // Add a new object with default values
+  } else {
+    console.error(`Unsupported tracker type: ${tracker.type}`);
+    return;
+  }
+
+  console.log(`Added new tracker item to ${date}:`, dailyTracker);
+  saveMeasures(); // Save the updated measures to local storage
+  renderDiary(currentMember); // Re-render the diary to reflect the changes
+}
+
+function removeTrackerItem(date, memberName, trackerName, index) {
+  const tracker = measures[date][memberName].trackers.find((t) => t.name === trackerName);
+
+  if (!tracker) {
+    console.error(`Tracker "${trackerName}" not found for ${memberName} on ${date}`);
+    return;
+  }
+
+  tracker.value.splice(index, 1);
+  saveMeasures();
+  renderDiary(currentMember);
 }
 
 function addSettingsEventListeners() {
@@ -276,90 +829,17 @@ function addSettingsEventListeners() {
   document.getElementById("trackExercises").addEventListener("change", toggleSectionVisibility);
 }
 
-function saveSettings() {
-  const name = document.getElementById("memberName").value.trim();
-  const weight = document.getElementById("trackWeight").checked
-    ? parseFloat(document.getElementById("memberWeight").value)
-    : null;
-  const waterNorm = document.getElementById("trackWaterNorm").checked
-    ? parseInt(document.getElementById("waterNorm").value)
-    : null;
-
-  const sweets = document.getElementById("trackSweets").checked
-    ? Array.from(document.querySelectorAll("#sweetsContainer .input-group input"))
-        .map((input) => input.value.trim())
-        .filter((value) => value)
-    : [];
-
-  const activities = document.getElementById("trackActivities").checked
-    ? Array.from(document.querySelectorAll("#activitiesContainer .input-group"))
-        .map((group) => ({
-          name: group.querySelector("input:nth-of-type(1)").value.trim(),
-          details: group.querySelector("input:nth-of-type(2)").value.trim(),
-        }))
-        .filter((activity) => activity.name)
-    : [];
-
-  const regularMedications = document.getElementById("trackRegularMedications").checked
-    ? Array.from(document.querySelectorAll("#regularMedicationsContainer .input-group"))
-        .map((group) => ({
-          name: group.querySelector("input:nth-of-type(1)").value.trim(),
-          dose: group.querySelector("input:nth-of-type(2)").value.trim(),
-        }))
-        .filter((med) => med.name)
-    : [];
-
-  const occasionalMedications = document.getElementById("trackOccasionalMedications").checked
-    ? Array.from(document.querySelectorAll("#occasionalMedicationsContainer .input-group input"))
-        .map((input) => input.value.trim())
-        .filter((value) => value)
-    : [];
-
-  const exercises = document.getElementById("trackExercises").checked
-    ? Array.from(document.querySelectorAll("#exercisesContainer .exercise-entry"))
-        .map((entry) => ({
-          name: entry.querySelector("input[type='text']").value.trim(),
-          reps: Array.from(entry.querySelectorAll(".sets-container input"))
-            .map((input) => parseInt(input.value))
-            .filter((value) => !isNaN(value)),
-        }))
-        .filter((exercise) => exercise.name)
-    : [];
-
-  config.members = [
-    {
-      ...DEFAULT_MEMBER,
-      name,
-      weight,
-      waterNorm,
-      sweets,
-      activity: activities,
-      medications: {
-        regular: regularMedications,
-        occasional: occasionalMedications,
-      },
-      exercises,
-      settings: {
-        trackWeight: document.getElementById("trackWeight").checked,
-        trackWaterNorm: document.getElementById("trackWaterNorm").checked,
-        trackSweets: document.getElementById("trackSweets").checked,
-        trackActivities: document.getElementById("trackActivities").checked,
-        trackRegularMedications: document.getElementById("trackRegularMedications").checked,
-        trackOccasionalMedications: document.getElementById("trackOccasionalMedications").checked,
-        trackExercises: document.getElementById("trackExercises").checked,
-      },
-    },
-  ];
-
-  saveConfig();
-  alert("Settings saved!");
-  initApp();
-}
-
 // --- Diary ---
 function renderDiary(member) {
+  if (!member) {
+    console.error("No member provided to renderDiary.");
+    return;
+  }
+
+  console.log("Rendering diary for member:", member.name);
+  console.log("Current measures:", measures);
+
   const content = document.getElementById("content");
-  const today = new Date().toISOString().split("T")[0];
   let html = ``;
 
   const allDates = Object.keys(measures)
@@ -367,165 +847,59 @@ function renderDiary(member) {
     .sort((a, b) => new Date(b) - new Date(a));
 
   allDates.forEach((date) => {
-    const open = openAccordions[date] ? "open" : "";
-    const data = measures[date]?.[member.name] || {};
-    html += renderDiaryEntry(date, data, member, open);
+    const data = measures[date][member.name];
+    html += renderDiaryEntry(date, data, member);
   });
 
   content.innerHTML = html;
+
+  // Restore the state of all accordions
+  Object.keys(openAccordions).forEach((date) => {
+    const accordion = document.querySelector(`.accordion[data-date="${date}"]`);
+    if (accordion && openAccordions[date]) {
+      accordion.classList.add("open");
+      const content = accordion.querySelector(".accordion-content");
+      if (content) content.style.display = "block";
+    }
+  });
 }
 
-function renderDiaryEntry(date, data, member, open) {
+function renderDiaryEntry(date, data, member) {
   return `
-    <div class="accordion ${open}" data-date="${date}">
-      <div class="accordion-header" data-accordion-header onclick="toggleAccordion(event)">${date}</div>
+    <div class="accordion" data-date="${date}">
+      <div class="accordion-header" onclick="toggleAccordion(event)">${date}</div>
       <div class="accordion-content">
-        ${renderDiaryWeight(data, member, date)}
-        ${renderDiaryWater(data, member, date)}
-        ${renderDiarySweets(data, member, date)}
-        ${renderDiaryActivities(data, member, date)}
-        ${renderDiaryRegularMedications(data, member, date)}
-        ${renderDiaryOccasionalMedications(data, member, date)}
-        ${renderDiaryExercises(data, member, date)}
+        ${data.trackers
+          .filter((tracker) => config.members[0].trackers.find((t) => t.name === tracker.name).isActive) // Only render active trackers
+          .map((tracker) => renderTracker(tracker, member, date))
+          .join("")}
+        ${member.enableNotes ? renderNotes(date, data.note) : ""}
       </div>
     </div>
   `;
 }
 
-function renderDiaryRegularMedications(data, member, date) {
-  if (!member.settings.trackRegularMedications) return "";
+function renderNotes(date, note) {
   return `
     <div class="section">
-      <strong>Regular Medications:</strong>
-      <div id="regularMedicationsContainer-${date}">
-        ${(data.regularMedications || []).map((med) => `
-          <div class="input-group">
-            <img 
-              src="${med.taken ? ICONS.medicineFilled : ICONS.medicineEmpty}" 
-              class="medicine" 
-              onclick="toggleRegularMedication('${date}', '${member.name}', '${med.name}', event)"
-              alt="Medicine Checkbox"
-            />
-            <span>${med.name} (${med.dose})</span>
-          </div>
-        `).join("")}
-      </div>
+      <strong>Notes:</strong>
+      <textarea 
+        placeholder="Add your notes here..." 
+        onchange="updateNotes('${date}', this.value)"
+      >${note || ""}</textarea>
     </div>
   `;
 }
 
-function renderDiaryOccasionalMedications(data, member, date) {
-  if (!member.settings.trackOccasionalMedications) return "";
-  return `
-    <div class="section">
-      <strong>Occasional Medications:</strong>
-      <div id="occasionalMedicationsContainer-${date}">
-        ${(data.occasionalMedications || []).map((med, i) => `
-          <div class="input-group">
-            <input type="text" value="${med.name}" placeholder="Medication Name" list="occasionalMedicationsList-${date}" onchange="updateOccasionalMedication('${date}', '${member.name}', ${i}, 'name', this.value)" />
-            <input type="text" class="input-45" value="${med.dose}" placeholder="Dose" onchange="updateOccasionalMedication('${date}', '${member.name}', ${i}, 'dose', this.value)" />
-            <button class="remove-button" onclick="removeOccasionalMedication('${date}', '${member.name}', ${i})">X</button>
-          </div>
-        `).join("")}
-      </div>
-      <datalist id="occasionalMedicationsList-${date}">
-        ${config.members[0].medications.occasional.map((med) => `<option value="${med}">`).join("")}
-      </datalist>
-      <button onclick="addMedicationEntry('${date}', event)">+ Add More</button>
-    </div>
-  `;
-}
+function updateNotes(date, value) {
+  if (!measures[date]) {
+    console.error(`No record found for ${date}.`);
+    return;
+  }
 
-function renderDiaryExercises(data, member, date) {
-  if (!member.settings.trackExercises) return "";
-  return `
-    <div class="section">
-      <strong>Exercises:</strong>
-      ${member.exercises.map((exercise, i) => `
-        <div class="exercise-entry">
-          <strong>${exercise.name}</strong>
-          ${exercise.reps.map((rep, j) => `
-            <div class="input-group">
-              <input type="number" value="${data.exercises?.[i]?.actualReps?.[j] || ""}" 
-                     placeholder="Actual Reps" 
-                     onchange="saveExerciseReps('${date}', '${member.name}', ${i}, ${j}, this.value)" />
-              <span class="input-45">(Base: ${rep})</span>
-            </div>
-          `).join("")}
-        </div>
-      `).join("")}
-    </div>
-  `;
-}
-
-function renderDiaryWeight(data, member, date) {
-  if (!member.settings.trackWeight) return "";
-  return `
-    <div class="section">
-      <strong>Weight:</strong>
-      <input type="number" class="input-45" value="${data.weight || member.weight}" onchange="saveWeight(this.value, '${date}', '${member.name}')" />
-    </div>
-  `;
-}
-
-function renderDiaryWater(data, member, date) {
-  if (!member.settings.trackWaterNorm) return "";
-  return `
-    <div class="section">
-      <strong>Water:</strong>
-      ${Array.from({ length: member.waterNorm }, (_, i) => `
-        <img 
-          src="${i < (data.water || 0) ? ICONS.waterFilled : ICONS.waterEmpty}" 
-          class="glass" 
-          onclick="fillGlass(this, ${i + 1}, '${date}', '${member.name}')"
-        />
-      `).join("")}
-    </div>
-  `;
-}
-
-function renderDiarySweets(data, member, date) {
-  if (!member.settings.trackSweets) return "";
-  return `
-    <div class="section">
-      <strong>Sweets:</strong>
-      <div id="sweetsContainer-${date}">
-        ${(data.sweets || []).map((sweet, i) => `
-          <div class="input-group">
-            <input type="text" value="${sweet.name || ""}" placeholder="Sweet Name" list="sweetsList-${date}" onchange="updateSweet('${date}', '${member.name}', ${i}, this.value)" />
-            <input type="number" class="input-45" value="${sweet.amount || ""}" placeholder="Amount" onchange="updateSweetAmount('${date}', '${member.name}', ${i}, this.value)" />
-            <button class="remove-button" onclick="removeSweet('${date}', '${member.name}', ${i})">X</button>
-          </div>
-        `).join("")}
-      </div>
-      <datalist id="sweetsList-${date}">
-        ${config.members[0].sweets.map((s) => `<option value="${s}">`).join("")}
-      </datalist>
-      <button onclick="addSweet('${date}', '${member.name}', event)">+ Add Sweet</button>
-    </div>
-  `;
-}
-
-function renderDiaryActivities(data, member, date) {
-  if (!member.settings.trackActivities) return "";
-  return `
-    <div class="section">
-      <strong>Activities:</strong>
-      <div id="activitiesContainer-${date}">
-        ${(data.activity || []).map((activity, i) => `
-          <div class="input-group">
-            <input type="text" value="${activity.name || ""}" placeholder="Activity Name" list="activitiesList-${date}" onchange="updateActivity('${date}', '${member.name}', ${i}, this.value)" />
-            <input type="text" class="input-45" value="${activity.details || ""}" placeholder="Details" onchange="updateActivityDetails('${date}', '${member.name}', ${i}, this.value)" />
-            <button class="remove-button" onclick="removeActivity('${date}', '${member.name}', ${i})">X</button>
-          </div>
-        `).join("")}
-      </div>
-      <datalist id="activitiesList-${date}">
-        ${config.members[0].activity.map((a) => `<option value="${a.name}">`).join("")}
-      </datalist>
-      <button onclick="addActivity('${date}', '${member.name}', event)">+ Add Activity</button>
-    </div>
-  `;
+  measures[date].note = value;
+  saveMeasures();
+  console.log(`Updated notes for ${date}:`, value);
 }
 
 // --- Utility Functions ---
@@ -557,18 +931,6 @@ function toggleSectionVisibility(event) {
   }
 }
 
-document.getElementById("content").addEventListener("click", (event) => {
-  const header = event.target.closest(".accordion-header");
-  if (header && header.parentElement.classList.contains("accordion")) {
-    const accordion = header.parentElement;
-    const date = accordion.getAttribute("data-date");
-
-    // Toggle the open state
-    accordion.classList.toggle("open");
-    openAccordions[date] = accordion.classList.contains("open");
-  }
-});
-
 function removeParent(button) {
   const parent = button.parentElement;
   parent.remove();
@@ -584,315 +946,23 @@ function fillGlass(el, count, date, memberName) {
   saveMeasures();
 }
 
-function saveWeight(newWeight, date, memberName) {
-  measures[date][memberName].weight = parseFloat(newWeight);
-  saveMeasures();
-}
 
-function addSweet(date, memberName, event) {
-  if (event) {
-    event.stopPropagation(); // Prevent the event from propagating to the accordion
-  }
+function toggleArrayObjectCheckbox(date, memberName, trackerName, index) {
+  const tracker = measures[date][memberName].trackers.find((t) => t.name === trackerName);
 
-  // Ensure the sweets array exists
-  measures[date][memberName].sweets = measures[date][memberName].sweets || [];
-  
-  // Add a new sweet
-  measures[date][memberName].sweets.push({ name: "", amount: "" });
-  saveMeasures();
-
-  // Append the new sweet
-  const sweetsContainer = document.getElementById(`sweetsContainer-${date}`);
-  if (sweetsContainer) {
-    const newSweet = document.createElement("div");
-    newSweet.className = "input-group";
-    newSweet.innerHTML = `
-      <input type="text" placeholder="Sweet Name" onchange="updateSweet('${date}', '${memberName}', ${measures[date][memberName].sweets.length - 1}, this.value)" />
-      <input type="number" class="input-45" placeholder="Amount" onchange="updateSweetAmount('${date}', '${memberName}', ${measures[date][memberName].sweets.length - 1}, this.value)" />
-      <button class="remove-button" onclick="removeSweet('${date}', '${memberName}', ${measures[date][memberName].sweets.length - 1})">X</button>
-    `;
-    sweetsContainer.insertBefore(newSweet, sweetsContainer.lastElementChild); // Insert before the "Add Sweet" button
-  } else {
-    console.error(`Sweets container for date ${date} not found.`);
-  }
-}
-
-function updateSweet(date, memberName, index, value, event) {
-  if (event) {
-    event.stopPropagation(); // Prevent the event from propagating to the accordion
-  }
-  measures[date][memberName].sweets[index].name = value;
-  // Add the new sweet to the config if it doesn't already exist
-  if (!config.members[0].sweets.includes(value)) {
-    config.members[0].sweets.push(value);
-    saveConfig();
-  }
-  saveMeasures();
-}
-
-function updateSweetAmount(date, memberName, index, value, event) {
-  if (event) {
-    event.stopPropagation(); // Prevent the event from propagating to the accordion
-  }
-  measures[date][memberName].sweets[index].amount = parseInt(value) || 0;
-  saveMeasures();
-}
-
-function removeSweet(date, memberName, index, event) {
-  if (event) {
-    event.stopPropagation(); // Prevent the event from propagating to the accordion
-  }
-  measures[date][memberName].sweets.splice(index, 1);
-  saveMeasures();
-  renderDiary(currentMember);
-}
-
-function addActivity(date, memberName, event) {
-  if (event) {
-    event.stopPropagation(); // Prevent the event from propagating to the accordion
-  }
-
-  // Ensure the activities array exists
-  measures[date][memberName].activity = measures[date][memberName].activity || [];
-  
-  // Add a new activity
-  measures[date][memberName].activity.push({ name: "", details: "" });
-  saveMeasures();
-
-  // Append the new activity
-  const activitiesContainer = document.getElementById(`activitiesContainer-${date}`);
-  if (activitiesContainer) {
-    const newActivity = document.createElement("div");
-    newActivity.className = "input-group";
-    newActivity.innerHTML = `
-      <input type="text" placeholder="Activity Name" onchange="updateActivity('${date}', '${memberName}', ${measures[date][memberName].activity.length - 1}, this.value)" />
-      <input type="text" class="input-45" placeholder="Details" onchange="updateActivityDetails('${date}', '${memberName}', ${measures[date][memberName].activity.length - 1}, this.value)" />
-      <button class="remove-button" onclick="removeActivity('${date}', '${memberName}', ${measures[date][memberName].activity.length - 1})">X</button>
-    `;
-    activitiesContainer.insertBefore(newActivity, activitiesContainer.lastElementChild); // Insert before the "Add Activity" button
-  } else {
-    console.error(`Activities container for date ${date} not found.`);
-  }
-}
-
-function updateActivity(date, memberName, index, value, event) {
-  if (event) {
-    event.stopPropagation(); // Prevent the event from propagating to the accordion
-  }
-  measures[date][memberName].activity[index].name = value;
-  // Add the new activity to the config if it doesn't already exist
-  if (!config.members[0].activity.some((activity) => activity.name === value)) {
-    config.members[0].activity.push({ name: value, details: "" });
-    saveConfig();
-  }
-  saveMeasures();
-}
-
-function updateActivityDetails(date, memberName, index, value, event) {
-  if (event) {
-    event.stopPropagation(); // Prevent the event from propagating to the accordion
-  }
-  measures[date][memberName].activity[index].details = value;
-  saveMeasures();
-}
-
-function removeActivity(date, memberName, index, event) {
-  if (event) {
-    event.stopPropagation(); // Prevent the event from propagating to the accordion
-  }
-  measures[date][memberName].activity.splice(index, 1);
-  saveMeasures();
-  renderDiary(currentMember);
-}
-
-function addActivities() {
-  const activitiesContainer = document.getElementById("activitiesContainer");
-  if (!activitiesContainer) {
-    console.error("activitiesContainer not found.");
-    return;
-  }
-
-  const newActivity = document.createElement("div");
-  newActivity.className = "input-group";
-  newActivity.innerHTML = `
-    <input type="text" placeholder="Activity Name" />
-    <input type="text" placeholder="Details" />
-    <button class="remove-button" onclick="removeParent(this)">X</button>
-  `;
-  activitiesContainer.appendChild(newActivity);
-}
-
-function addRegularMedications() {
-  const regularMedicationsContainer = document.getElementById("regularMedicationsContainer");
-  if (!regularMedicationsContainer) {
-    console.error("regularMedicationsContainer not found.");
-    return;
-  }
-
-  const newMedication = document.createElement("div");
-  newMedication.className = "input-group";
-  newMedication.innerHTML = `
-    <input type="text" placeholder="Medication Name" />
-    <input type="text" placeholder="Dose" />
-    <button class="remove-button" onclick="removeParent(this)">X</button>
-  `;
-  regularMedicationsContainer.appendChild(newMedication);
-}
-
-function toggleRegularMedication(date, memberName, medicationName, event) {
-  if (!measures[date] || !measures[date][memberName]) {
-    console.error(`No data found for date: ${date} and member: ${memberName}`);
-    return;
-  }
-
-  const medication = measures[date][memberName].regularMedications.find(
-    (med) => med.name === medicationName
-  );
-
-  if (!medication) {
-    console.error(`Medication with name "${medicationName}" not found.`);
+  if (!tracker) {
+    console.error(`Tracker "${trackerName}" not found for ${memberName} on ${date}`);
     return;
   }
 
   // Toggle the "taken" status
-  medication.taken = !medication.taken;
-
-  // Update the UI
-  const img = event.target;
-  img.src = medication.taken ? ICONS.medicineFilled : ICONS.medicineEmpty;
+  tracker.value[index].checkbox = !tracker.value[index].checkbox;
 
   // Save the updated measures
   saveMeasures();
-}
 
-function addOccasionalMedications() {
-  const occasionalMedicationsContainer = document.getElementById("occasionalMedicationsContainer");
-  if (!occasionalMedicationsContainer) {
-    console.error("occasionalMedicationsContainer not found.");
-    return;
-  }
-
-  const newMedication = document.createElement("div");
-  newMedication.className = "input-group";
-  newMedication.innerHTML = `
-    <input type="text" placeholder="Medication Name" />
-    <button class="remove-button" onclick="removeParent(this)">X</button>
-  `;
-  occasionalMedicationsContainer.appendChild(newMedication);
-}
-
-function updateOccasionalMedication(date, memberName, index, field, value) {
-  if (!measures[date] || !measures[date][memberName]) {
-    console.error(`No data found for date: ${date} and member: ${memberName}`);
-    return;
-  }
-
-  measures[date][memberName].occasionalMedications[index][field] = value; // Update the field (name or dose)
-  // Add the new medication to the config if it doesn't already exist
-  if (field === "name" && !config.members[0].medications.occasional.includes(value)) {
-    config.members[0].medications.occasional.push(value);
-    saveConfig();
-  }
-  saveMeasures();
-}
-
-function removeOccasionalMedication(date, memberName, index) {
-  if (!measures[date] || !measures[date][memberName]) {
-    console.error(`No data found for date: ${date} and member: ${memberName}`);
-    return;
-  }
-
-  measures[date][memberName].occasionalMedications.splice(index, 1);
-  saveMeasures();
+  // Re-render the diary to reflect the changes
   renderDiary(currentMember);
-}
-
-function addSet(button) {
-  const setsContainer = button.previousElementSibling; // Find the container for sets
-  if (!setsContainer) {
-    console.error("Sets container not found.");
-    return;
-  }
-
-  const newSet = document.createElement("div");
-  newSet.className = "input-group";
-  newSet.innerHTML = `
-    <input type="number" placeholder="Reps" />
-    <button class="remove-button" onclick="removeParent(this)">X</button>
-  `;
-  setsContainer.appendChild(newSet);
-}
-
-function addExercises() {
-  const exercisesContainer = document.getElementById("exercisesContainer");
-  if (!exercisesContainer) {
-    console.error("exercisesContainer not found.");
-    return;
-  }
-
-  const newExercise = document.createElement("div");
-  newExercise.className = "exercise-entry";
-  newExercise.innerHTML = `
-    <input type="text" placeholder="Exercise Name" />
-    <div class="sets-container">
-      <div class="input-group">
-        <input type="number" placeholder="Reps" />
-        <button class="remove-button" onclick="removeParent(this)">X</button>
-      </div>
-    </div>
-    <button onclick="addSet(this)">+ Add Set</button>
-    <button class="remove-button button-100" onclick="removeParent(this)">Remove Exercise</button>
-  `;
-  exercisesContainer.appendChild(newExercise);
-}
-
-function addSweets() {
-  const sweetsContainer = document.getElementById("sweetsContainer");
-  if (!sweetsContainer) {
-    console.error("sweetsContainer not found.");
-    return;
-  }
-
-  const newSweet = document.createElement("div");
-  newSweet.className = "input-group";
-  newSweet.innerHTML = `
-    <input type="text" placeholder="Enter sweet" />
-    <button class="remove-button" onclick="removeParent(this)">X</button>
-  `;
-  sweetsContainer.appendChild(newSweet);
-}
-
-function addMedicationEntry(date, event) {
-  if (event) {
-    event.stopPropagation(); // Prevent the event from propagating to the accordion
-  }
-
-  const occasionalMedicationsContainer = document.getElementById(`occasionalMedicationsContainer-${date}`);
-  if (!occasionalMedicationsContainer) {
-    console.error(`Occasional medications container for date ${date} not found.`);
-    return;
-  }
-
-  measures[date][currentMember.name].occasionalMedications = measures[date][currentMember.name].occasionalMedications || [];
-  measures[date][currentMember.name].occasionalMedications.push({ name: "", dose: "" }); // Add a new medication
-  saveMeasures();
-  renderDiary(currentMember);
-}
-
-function saveExerciseReps(date, memberName, exerciseIndex, setIndex, value) {
-  if (!measures[date] || !measures[date][memberName]) {
-    console.error(`No data found for date: ${date} and member: ${memberName}`);
-    return;
-  }
-
-  const exercise = measures[date][memberName].exercises[exerciseIndex];
-  if (!exercise) {
-    console.error(`No exercise found at index: ${exerciseIndex}`);
-    return;
-  }
-
-  exercise.actualReps[setIndex] = parseInt(value) || 0; // Update the reps for the specific set
-  saveMeasures(); // Save the updated measures to localStorage
 }
 
 function toggleMenu() {
@@ -936,11 +1006,20 @@ function toggleAccordion(event) {
   const header = event.target.closest(".accordion-header");
   if (header && header.parentElement.classList.contains("accordion")) {
     const accordion = header.parentElement;
+    const content = accordion.querySelector(".accordion-content");
     const date = accordion.getAttribute("data-date");
 
     // Toggle the open state
     accordion.classList.toggle("open");
-    openAccordions[date] = accordion.classList.contains("open");
+
+    // Show or hide the content
+    if (accordion.classList.contains("open")) {
+      content.style.display = "block";
+      openAccordions[date] = true; // Mark as open
+    } else {
+      content.style.display = "none";
+      openAccordions[date] = false; // Mark as closed
+    }
   }
 }
 
@@ -1035,7 +1114,7 @@ function generateReport() {
         }
       } else if (reportType === "specificMedication" && specificMedicationName) {
         const regularMed = memberData.regularMedications.find(
-          med => med.name === specificMedicationName && med.taken
+          med => med.name === specificMedicationName && med.checkbox
         );
         const occasionalMed = memberData.occasionalMedications.find(
           med => med.name === specificMedicationName
@@ -1143,14 +1222,14 @@ function importDiary(event) {
 
 // --- Initialization ---
 let openAccordions = {};
-loadConfig();
 document.getElementById("content").addEventListener("click", (event) => {
   if (event.target.classList.contains("accordion-header")) {
     const accordion = event.target.parentElement;
     const date = accordion.getAttribute("data-date");
-
     // Toggle the open state
     accordion.classList.toggle("open");
+    toggleAccordion(event);
     openAccordions[date] = accordion.classList.contains("open");
   }
 });
+initApp();

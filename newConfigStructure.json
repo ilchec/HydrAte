@@ -1,0 +1,81 @@
+{
+    "members": [
+        {
+            "name": "Ilia",
+            "trackers": [
+                {
+                    "name": "Weight",
+                    "isActive": true,
+                    "type": "unlimited-number",
+                    "value": 108
+                },
+                {
+                    "name": "Water",
+                    "isActive": true,
+                    "type": "limited-number",
+                    "value": 10,
+                    "icon": "glass-of-water"
+                },
+                {
+                    "name": "Sweets",
+                    "isActive": true,
+                    "type": "array-strings",
+                    "value": ["Baklava", "Chocolate"]
+                },
+                {
+                    "name": "Activities",
+                    "isActive": true,
+                    "type": "array-objects",
+                    "value": ["Swimming", "Running"] 
+
+                },
+                {
+                    "name": "Regular Medications",
+                    "isActive": true,
+                    "type": "array-objects-checkbox",
+                    "icon": "medicine",
+                    "value": [
+                        {
+                            "name": "Escitalopram",
+                            "details": "600"
+                        },
+                        {
+                            "name": "Aspirin",
+                            "details": "400"
+                        }
+                    ]
+                },
+                {
+                    "name": "Occasional Medications",
+                    "isActive": true,
+                    "type": "array-strings",
+                    "value": ["Ibuprofen", "Aspirin"]
+                },
+                {
+                    "name": "Exercises",
+                    "isActive": true,
+                    "type": "array-objects-sets",
+                    "value": [
+                        {
+                            "name": "Push-ups",
+                            "reps": [
+                                10,
+                                10,
+                                10
+                        ]
+                        },
+                        {
+                            "name": "Squats",
+                            "reps": [
+                                1,
+                                2,
+                                3
+                            ]
+                        }
+                    ]
+                }
+            
+            ]
+        }
+    ]
+}
