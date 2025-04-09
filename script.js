@@ -130,7 +130,7 @@ function syncTrackersWithDailyRecord(dailyRecord, trackers) {
             ? (tracker.value || []).map((setGroup) => ({
                 name: setGroup.name || "",
                 reps: setGroup.reps || [],
-                actualReps: Array(setGroup.reps?.length || 0).fill(0), // Sync actualReps
+                actualReps: Array(setGroup.reps?.length || 0).fill(0),
               }))
             : null,
         icon: tracker.icon || null,
@@ -153,10 +153,13 @@ function ensureTodayRecordExists() {
 }
 
 function addTrackerToExistingRecords(newTracker) {
+  const today = new Date().toISOString().split("T")[0];
+  const dailyRecord = measures[today][currentMember.name];
   Object.keys(measures).forEach((date) => {
     const dailyRecord = measures[date][currentMember.name];
     if (dailyRecord) {
       syncTrackersWithDailyRecord(dailyRecord, [newTracker]);
+      saveMeasures();
     }
   });
 }
@@ -250,6 +253,7 @@ function renderTrackersSettings(member) {
             <label for="trackerActive-${index}">
               <strong>${tracker.name}</strong> (${tracker.type})
             </label>
+            <button class="edit-button" onclick="editTracker(${index})">Edit</button>
           </div>
         `
         )
@@ -291,6 +295,138 @@ function showAddTrackerDialog() {
     <div id="dynamicFields"></div>
     <button onclick="saveTracker()">Save</button>
   `;
+}
+
+function editTracker(index) {
+  const tracker = currentMember.trackers[index];
+  if (!tracker) {
+    console.error(`Tracker at index ${index} not found.`);
+    return;
+  }
+
+  const content = document.getElementById("trackerSetup");
+  content.innerHTML = `
+    <div class="section">
+      <label for="trackerType"><strong>Tracker Type:</strong></label>
+      <select id="trackerType" disabled>
+        <option value="${tracker.type}" selected>${tracker.type}</option>
+      </select>
+    </div>
+    <div class="section">
+      <label for="trackerName"><strong>Tracker Name:</strong></label>
+      <input type="text" id="trackerName" value="${tracker.name}" placeholder="Enter tracker name" />
+    </div>
+    <div id="dynamicFields"></div>
+    <button onclick="saveEditedTracker(${index})">Save</button>
+  `;
+
+  updateTrackerFields(); // Populate dynamic fields based on tracker type
+
+  // Populate existing values
+  if (tracker.type === "limited-number" || tracker.type === "array-objects-checkbox") {
+    document.getElementById("trackerIcon").value = tracker.icon || "";
+  }
+
+  if (tracker.type === "array-strings") {
+    const container = document.getElementById("favoriteEntriesContainer");
+    tracker.value.forEach((entry) => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = entry;
+      container.appendChild(input);
+    });
+  } else if (tracker.type === "array-objects") {
+    const container = document.getElementById("favoriteEntriesContainer");
+    tracker.value.forEach((obj) => {
+      const entry = document.createElement("div");
+      entry.className = "input-group";
+      entry.innerHTML = `
+        <input type="text" value="${obj.name}" placeholder="Entry Name" />
+        <input type="text" value="${obj.details}" placeholder="Details" />
+      `;
+      container.appendChild(entry);
+    });
+  } else if (tracker.type === "array-objects-sets") {
+    const container = document.getElementById("setsContainer");
+    tracker.value.forEach((setGroup) => {
+      const group = document.createElement("div");
+      group.className = "setGroup-entry";
+      group.innerHTML = `
+        <input type="text" value="${setGroup.name}" placeholder="Set Group Name" />
+        <div class="sets-container">
+          ${setGroup.reps
+            .map(
+              (rep) => `
+            <input type="number" value="${rep}" placeholder="Reps" />
+          `
+            )
+            .join("")}
+        </div>
+      `;
+      container.appendChild(group);
+    });
+  }
+}
+
+function saveEditedTracker(index) {
+  const tracker = currentMember.trackers[index];
+  if (!tracker) {
+    console.error(`Tracker at index ${index} not found.`);
+    return;
+  }
+
+  const trackerName = document.getElementById("trackerName").value.trim();
+  const trackerIconElement = document.getElementById("trackerIcon");
+  const trackerIcon = trackerIconElement ? trackerIconElement.value : null;
+
+  if (!trackerName) {
+    alert("Please enter a tracker name.");
+    return;
+  }
+
+  tracker.name = trackerName;
+  if (tracker.type === "limited-number" || tracker.type === "array-objects-checkbox") {
+    tracker.icon = trackerIcon;
+  }
+
+  // Update tracker values based on type
+  if (tracker.type === "array-strings") {
+    const entries = Array.from(document.querySelectorAll("#favoriteEntriesContainer input"))
+      .map((input) => input.value.trim())
+      .filter((value) => value);
+    tracker.value = entries;
+  } else if (tracker.type === "array-objects") {
+    const objects = Array.from(document.querySelectorAll("#favoriteEntriesContainer .input-group"))
+      .map((group) => ({
+        name: group.querySelector("input:nth-of-type(1)").value.trim(),
+        details: group.querySelector("input:nth-of-type(2)").value.trim(),
+      }))
+      .filter((obj) => obj.name);
+    tracker.value = objects;
+  } else if (tracker.type === "array-objects-sets") {
+    const setGroups = Array.from(document.querySelectorAll("#setsContainer .setGroup-entry")).map((setGroup) => {
+      const name = setGroup.querySelector("input[type='text']").value.trim();
+      const reps = Array.from(setGroup.querySelectorAll(".sets-container input[type='number']"))
+        .map((input) => parseInt(input.value))
+        .filter((value) => !isNaN(value));
+      return { name, reps };
+    }).filter((setGroup) => setGroup.name);
+    tracker.value = setGroups;
+  }
+
+  // Update today's record
+  const today = new Date().toISOString().split("T")[0];
+  const dailyRecord = measures[today][currentMember.name];
+  if (dailyRecord) {
+    const dailyTracker = dailyRecord.trackers.find((t) => t.name === tracker.name);
+    if (dailyTracker) {
+      dailyTracker.value = tracker.value;
+    }
+    saveMeasures();
+  }
+
+  saveConfig();
+  renderSettings();
 }
 
 function updateTrackerFields() {
@@ -654,7 +790,7 @@ function renderTracker(tracker, member, date) {
               </div>
             `).join("")}
           </div>
-          <button onclick="addTrackerItem('${tracker.name}')">+ Add ${tracker.name}</button>
+          <button onclick="addTrackerItem('${tracker.name}', '${date}')">+ Add ${tracker.name}</button>
         </div>
       `;
 
