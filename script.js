@@ -230,9 +230,48 @@ function renderMemberSettings(member) {
   return `
     <div class="section">
       <label for="memberName"><strong>Member Name:</strong></label>
-      <input type="text" id="memberName" value="${member.name}" placeholder="Enter name" />
+      <input 
+        type="text" 
+        id="memberName" 
+        value="${member.name}" 
+        placeholder="Enter name" 
+        onchange="updateMemberName(this.value)" 
+      />
     </div>
   `;
+}
+
+function updateMemberName(newName) {
+  newName = newName.trim();
+
+  if (!newName) {
+    alert("Please enter a valid name.");
+    return;
+  }
+
+  // Update the current member's name
+  const oldName = currentMember.name;
+  currentMember.name = newName;
+
+  // Update the config
+  const memberIndex = config.members.findIndex((member) => member.name === oldName);
+  if (memberIndex !== -1) {
+    config.members[memberIndex].name = newName;
+  }
+
+  // Update the measures object to reflect the new name
+  Object.keys(measures).forEach((date) => {
+    if (measures[date][oldName]) {
+      measures[date][newName] = measures[date][oldName];
+      delete measures[date][oldName];
+    }
+  });
+
+  // Save the updated config and measures
+  saveConfig();
+  saveMeasures();
+
+  console.log(`Member name updated from "${oldName}" to "${newName}".`);
 }
 
 function renderTrackersSettings(member) {
@@ -279,14 +318,14 @@ function showAddTrackerDialog() {
   const content = document.getElementById("trackerSetup");
   content.innerHTML = `
     <div class="section">
-      <label for="trackerType"><strong>Select Tracker Type:</strong></label>
+      <label for="trackerType"><strong>Select Tracker Template:</strong></label>
       <select id="trackerType" onchange="updateTrackerFields()">
-        <option value="unlimited-number">Unlimited Number</option>
-        <option value="limited-number">Limited Number</option>
-        <option value="array-strings">Array of Strings</option>
-        <option value="array-objects">Array of Objects</option>
-        <option value="array-objects-checkbox">Array of Objects with Checkbox</option>
-        <option value="array-objects-sets">Array of Objects with Sets</option>
+        <option value="unlimited-number">Number (Good for: Weight)</option>
+        <option value="limited-number">Scale (Good for: Period intensity, Daily water intake)</option>
+        <option value="array-strings">Text (Good for: Occasional sweets, occasional activivities)</option>
+        <option value="array-objects">Text + Detail (Good for: Occasional medication with dose)</option>
+        <option value="array-objects-checkbox">Checkbox (Good for: Regular medication with dose)</option>
+        <option value="array-objects-sets">Sets (Good for: Gym training)</option>
       </select>
     </div>
     <div class="section">
@@ -771,7 +810,7 @@ function renderTracker(tracker, member, date) {
             ${Array.from({ length: tracker.value }, (_, i) => `
               <img 
                 src="${i < (tracker.current || 0) ? 'images/trackingIcons/'+tracker.icon+'-filled.png' : 'images/trackingIcons/'+tracker.icon+'.png'}" 
-                class="glass" 
+                class="icon" 
                 onclick="updateTracker('${date}', '${member.name}', '${tracker.name}', ${i + 1})"
               />
             `).join("")}
@@ -837,7 +876,7 @@ function renderTracker(tracker, member, date) {
               <div class="input-group">
                 <img 
                   src="${item.checkbox ? 'images/trackingIcons/'+config.members[0].trackers.find((t) => t.name === tracker.name).icon+'-filled.png' : 'images/trackingIcons/'+config.members[0].trackers.find((t) => t.name === tracker.name).icon+'.png'}" 
-                  class="medicine" 
+                  class="icon" 
                   onclick="toggleArrayObjectCheckbox('${date}', '${member.name}', '${tracker.name}', ${i})"
                   alt="Checkbox Icon"
                 />
@@ -1174,7 +1213,7 @@ function renderReports() {
 
   // Populate the tracker dropdown
   const trackerOptions = trackers
-    .map((tracker) => `<option value="${tracker.name}">${tracker.name} (${tracker.type})</option>`)
+    .map((tracker) => `<option value="${tracker.name}">${tracker.name}</option>`)
     .join("");
 
   content.innerHTML = `

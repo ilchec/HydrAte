@@ -289,9 +289,9 @@ button.remove-button:hover {
 }
 
 /* Pill Icon Styles */
-.medicine {
-  width: 40px; /* Match the width of the glass icons */
-  height: 60px; /* Match the height of the glass icons */
+.icon {
+  width: 50px; /* Match the width of the glass icons */
+  height: 50px; /* Match the height of the glass icons */
   margin-right: 8px; /* Add spacing between icons */
   cursor: pointer; /* Make it clickable */
   outline: none;
