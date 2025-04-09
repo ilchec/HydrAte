@@ -308,12 +308,44 @@ function renderTrackersSettings(member) {
               <strong>${tracker.name}</strong> (${tracker.type})
             </label>
             <button class="edit-button" onclick="editTracker(${index})">Edit</button>
+            <button class="delete-button" onclick="deleteTracker(${index})">Delete</button>
           </div>
         `
         )
         .join("")}
     </div>
   `;
+}
+
+function deleteTracker(index) {
+  const tracker = currentMember.trackers[index];
+  if (!tracker) {
+    console.error(`Tracker at index ${index} not found.`);
+    return;
+  }
+
+  const confirmed = confirm(`Are you sure you want to delete the tracker "${tracker.name}"?`);
+  if (!confirmed) {
+    return;
+  }
+
+  // Remove the tracker from the current member's trackers
+  currentMember.trackers.splice(index, 1);
+
+  // Remove the tracker from all existing daily records
+  Object.keys(measures).forEach((date) => {
+    const dailyRecord = measures[date][currentMember.name];
+    if (dailyRecord) {
+      dailyRecord.trackers = dailyRecord.trackers.filter((t) => t.name !== tracker.name);
+    }
+  });
+
+  // Save the updated config and measures
+  saveConfig();
+  saveMeasures();
+
+  console.log(`Tracker "${tracker.name}" has been deleted.`);
+  renderSettings(); // Refresh the settings page
 }
 
 function toggleTrackerActive(index) {
@@ -576,10 +608,15 @@ function saveTracker() {
   const trackerIcon = trackerIconElement ? trackerIconElement.value : null;
   const trackerValueElement = document.getElementById("trackerValue");
   const trackerValue = trackerValueElement ? parseInt(trackerValueElement.value) : null;
-  console.log(trackerIcon);
 
   if (!trackerName) {
     alert("Please enter a tracker name.");
+    return;
+  }
+
+  // Check for duplicate tracker names
+  if (currentMember.trackers.some((tracker) => tracker.name === trackerName)) {
+    alert("A tracker with this name already exists. Please choose a different name.");
     return;
   }
 
@@ -593,8 +630,8 @@ function saveTracker() {
     name: trackerName,
     type: trackerType,
     isActive: true,
-    value: ["unlimited-number", "limited-number"].includes(trackerType) ? trackerValue || 0 : [], // Default to 0 or an empty array
-    icon: trackerIcon || null, // Assign the selected icon or null
+    value: ["unlimited-number", "limited-number"].includes(trackerType) ? trackerValue || 0 : [],
+    icon: trackerIcon || null,
   };
 
   // Handle specific tracker types
@@ -602,23 +639,23 @@ function saveTracker() {
     const entries = Array.from(document.querySelectorAll("#favoriteEntriesContainer input"))
       .map((input) => input.value.trim())
       .filter((value) => value);
-    newTracker.value = entries; // Save favorite entries
+    newTracker.value = entries;
   } else if (trackerType === "array-objects") {
     const objects = Array.from(document.querySelectorAll("#favoriteEntriesContainer .input-group"))
       .map((group) => ({
         name: group.querySelector("input:nth-of-type(1)").value.trim(),
         details: group.querySelector("input:nth-of-type(2)").value.trim(),
       }))
-      .filter((obj) => obj.name); // Only save objects with a valid "name"
+      .filter((obj) => obj.name);
     newTracker.value = objects;
   } else if (trackerType === "array-objects-checkbox") {
     const entries = Array.from(document.querySelectorAll("#favoriteEntriesContainer .input-group"))
       .map((group) => ({
         name: group.querySelector("input:nth-of-type(1)").value.trim(),
         details: group.querySelector("input:nth-of-type(2)").value.trim(),
-        checkbox: false, // Default "checkbox" status
+        checkbox: false,
       }))
-      .filter((entry) => entry.name); // Only save valid entries with a name
+      .filter((entry) => entry.name);
     newTracker.value = entries;
   } else if (trackerType === "array-objects-sets") {
     const setGroups = Array.from(document.querySelectorAll("#setsContainer .setGroup-entry")).map((setGroup) => {
@@ -632,8 +669,9 @@ function saveTracker() {
   }
 
   // Add the tracker to the config
-  config.members[0].trackers.push(newTracker);
+  currentMember.trackers.push(newTracker);
   saveConfig();
+
   // Add the tracker to all existing records
   addTrackerToExistingRecords(newTracker);
 
