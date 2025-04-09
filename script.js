@@ -171,7 +171,7 @@ function renderSettings() {
     <div id="memberSetup">
       ${member.name ? renderMemberSettings(member) : renderNewUserPrompt()}
     </div>
-    <div class="section">
+    <div class="section notes-checkbox-section">
       <input 
         type="checkbox" 
         id="enableNotes" 

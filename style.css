@@ -365,5 +365,13 @@ button.remove-button:hover {
   #content {
     padding: .5rem; /* Add padding to the content */
   }
+  input[type="checkbox"] {
+    width: inherit !important;
+    margin-right: 0.5rem;
+  }
+
+  .notes-checkbox-section {
+    display: flex;
+  }
 
 }
