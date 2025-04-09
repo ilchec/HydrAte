@@ -1,0 +1,152 @@
+{
+    "2025-04-08": {
+        "Ilia": {
+            "trackers": [
+                {
+                    "water": 10
+                },
+                {
+                    "sweets": [
+                        {
+                            "name": "Marsa",
+                            "details": 1
+                        },
+                        {
+                            "name": "",
+                            "details": ""
+                        },
+                        {
+                            "name": "",
+                            "details": ""
+                        }
+                    ]
+                },
+                {
+                    "regularMedications": [
+                        {
+                            "name": "Escitalopram",
+                            "details": "600",
+                            "checkbox": true
+                        }
+                    ]
+                },
+                {
+                    "occasionalMedications": []
+                },
+                {
+                    "activity": [
+                        {
+                            "name": "Sleep",
+                            "details": "30"
+                        },
+                        {
+                            "name": "Running",
+                            "details": "30"
+                        }
+                    ]
+                },
+                {
+                    "exercises": [
+                        {
+                            "name": "Push-ups",
+                            "actualReps": [
+                                1,
+                                2,
+                                2
+                            ]
+                        },
+                        {
+                            "name": "Squats",
+                            "actualReps": [
+                                10,
+                                10,
+                                1
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "weight": 108
+                },
+                {
+                    "note": ""
+                }
+            ]
+        }
+    },
+    "2025-01-01": {
+        "Ilia": {
+            "trackers": [
+                {
+                    "water": 10
+                },
+                {
+                    "sweets": [
+                        {
+                            "name": "Marsa",
+                            "amount": 1
+                        },
+                        {
+                            "name": "",
+                            "amount": ""
+                        },
+                        {
+                            "name": "",
+                            "amount": ""
+                        }
+                    ]
+                },
+                {
+                    "regularMedications": [
+                        {
+                            "name": "Escitalopram",
+                            "dose": "600",
+                            "taken": true
+                        }
+                    ]
+                },
+                {
+                    "occasionalMedications": []
+                },
+                {
+                    "activity": [
+                        {
+                            "name": "Sleep",
+                            "details": "30"
+                        },
+                        {
+                            "name": "Running",
+                            "details": "30"
+                        }
+                    ]
+                },
+                {
+                    "exercises": [
+                        {
+                            "name": "Push-ups",
+                            "actualReps": [
+                                1,
+                                2,
+                                2
+                            ]
+                        },
+                        {
+                            "name": "Squats",
+                            "actualReps": [
+                                10,
+                                10,
+                                1
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "weight": 108
+                },
+                {
+                    "note": ""
+                }
+            ]
+        }
+    }
+}
