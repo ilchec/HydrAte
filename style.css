@@ -357,7 +357,10 @@ button.remove-button:hover {
 
   button[onclick^="add"],
   button[onclick^="save"],
-  button[onclick^="show"] {
+  button[onclick^="show"],
+  button[onclick^="generate"],
+  select
+   {
     width: 100%; /* Full width */
     margin: 0 .5rem 0.5rem 0; /* Adjust padding for mobile */
   }
@@ -372,6 +375,16 @@ button.remove-button:hover {
 
   .notes-checkbox-section {
     display: flex;
+  }
+
+  .tracker-item {
+    margin-bottom: 1rem;
+    display: flex;
+  }
+
+  .tracker-item button {
+    margin-right: 1rem;
+    margin-left: auto;
   }
 
 }
