@@ -1,6 +1,10 @@
 /* General Styles */
 :root {
   --logo-color: black;
+  --red: #ffab9d;
+  --green: #c7ffd8;
+  --dark-green: #00a955;
+  --blue: #98d0ff;
 }
 
 body {
@@ -22,8 +26,8 @@ body {
 
 button {
   padding: 0.4rem 1rem;
-  background-color: #28a745;
-  color: white;
+  background-color: var(--green);
+  color: black;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -31,16 +35,12 @@ button {
 }
 
 .delete-button {
-  background-color: red;
+  background-color: var(--red);
 }
 
 
 button:hover {
-  background-color: #218838;
-}
-
-button:hover {
-  background-color: #218838;
+  background-color: var(--dark-green);
 }
 
 button[onclick^="add"] {
