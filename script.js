@@ -1312,8 +1312,9 @@ function renderReports() {
       </select>
     </div>
     <button onclick="generateReport()">Generate Report</button>
-    <div id="reportResults" class="section"></div>
     <div id="periodStats" class="section" style="display: none;"></div>
+    <div id="reportResults" class="section"></div>
+
   `;
 }
 
