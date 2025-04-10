@@ -1408,6 +1408,10 @@ function generateReport() {
     }
   });
 
+  // Sort results by date in descending order
+  results.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+
   // Calculate average and trend for number trackers
   let average = 0;
   let trend = "No Change";
