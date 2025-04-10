@@ -854,21 +854,21 @@ function renderTracker(tracker, member, date) {
         </div>
       `;
 
-    case "limited-number":
-      return `
-        <div class="section">
-          <strong>${tracker.name}:</strong>
-          <div class="glass-container">
-            ${Array.from({ length: tracker.value }, (_, i) => `
-              <img 
+      case "limited-number":
+        return `
+          <div class="section">
+            <strong>${tracker.name}:</strong>
+            <div class="glass-container">
+              ${Array.from({ length: tracker.value }, (_, i) => `
+                <img 
                 src="${i < (tracker.current || 0) ? 'images/trackingIcons/'+tracker.icon+'-filled.png' : 'images/trackingIcons/'+tracker.icon+'.png'}" 
-                class="icon" 
-                onclick="updateTracker('${date}', '${member.name}', '${tracker.name}', ${i + 1})"
-              />
-            `).join("")}
+                class="icon ${i === 0 && tracker.current === 1 ? "reset-icon" : ""}" 
+                onclick="${i === 0 && tracker.current === 1 ? `resetLimitedNumberTracker('${date}', '${member.name}', '${tracker.name}')` : `updateTracker('${date}', '${member.name}', '${tracker.name}', ${i + 1})`}"
+                />
+              `).join("")}
+            </div>
           </div>
-        </div>
-      `;
+        `;
 
     case "array-strings":
       return `
@@ -1037,6 +1037,26 @@ function addTrackerItem(trackerName, date) {
   console.log(`Added new tracker item to ${date}:`, dailyTracker);
   saveMeasures(); // Save the updated measures to local storage
   renderDiary(currentMember); // Re-render the diary to reflect the changes
+}
+
+function resetLimitedNumberTracker(date, memberName, trackerName) {
+  const tracker = measures[date][memberName].trackers.find((t) => t.name === trackerName);
+
+  if (!tracker) {
+    console.error(`Tracker "${trackerName}" not found for ${memberName} on ${date}.`);
+    return;
+  }
+
+  // Set the tracker value to zero
+  tracker.current = 0;
+
+  // Save the updated measures
+  saveMeasures();
+
+  // Re-render the diary to reflect the changes
+  renderDiary(currentMember);
+
+  console.log(`Tracker "${trackerName}" has been reset to zero.`);
 }
 
 function removeTrackerItem(date, memberName, trackerName, index) {
